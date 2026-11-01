@@ -89,7 +89,7 @@
       "type": "command",
       "key": "             ",
       "shell": "/bin/bash",
-      "text": "C=43; P=45; out=\"\"; for d in $(lsblk -ndpo NAME | grep -vE 'loop|ram'); do m=$(lsblk -ndpo MODEL \"$d\" | xargs); [ -z \"$m\" ] && m=$(basename \"$d\"); parts=$(lsblk -lnpo MOUNTPOINT,SIZE,FSUSE%,FSUSED,FSTYPE,NAME \"$d\" | awk '$1 ~ \"^/\"'); if [ -n \"$parts\" ]; then out+=\"\\r\\e[${C}G\\e[1;36m${m}\\e[0m\\e[K\\n\"; while read -r mp size perc used fstype devname; do u=${perc//%/}; [ -z \"$u\" ] && u=0; p=$((u/10)); b='[ '; for((i=0;i<10;i++)); do [ $i -lt $p ] && b+='\\e[1;32m❙\\e[0m' || b+='-'; done; b+=' ]'; if findmnt -rn -o TARGET \"$devname\" 2>/dev/null | grep -Fxq \"/\"; then s_mp=\"/\"; elif [ \"$mp\" = \"/\" ]; then s_mp=\"/\"; else s_mp=\"/$(basename \"$mp\")\"; fi; printf -v line \"\\r\\e[${P}G%-14s: %b \\e[1;32m%s\\e[0m %s / %s - %s\\e[K\\n\" \"($s_mp)\" \"$b\" \"$perc\" \"$used\" \"$size\" \"$fstype\"; out+=\"$line\"; done <<< \"$parts\"; fi; done; echo -ne \"${out%\\n}\""
+      "text": "C=43; P=45; out=\"\"; for d in $(lsblk -ndpo NAME | grep -vE 'loop|ram|sr|fd|nbd'); do m=$(lsblk -ndpo MODEL \"$d\" 2>/dev/null | xargs); [ -z \"$m\" ] && m=$(basename \"$d\"); parts=$(lsblk -lnpo NAME,SIZE,FSUSE%,FSUSED,MOUNTPOINT \"$d\" | awk '$5 ~ \"^/\"'); if [ -n \"$parts\" ]; then out+=\"\\r\\e[${C}G\\e[1;36m${m}\\e[0m\\e[K\\n\"; while read -r devname size perc used mp; do u=${perc//%/}; [ -z \"$u\" ] && u=0; p=$((u/10)); b='[ '; for((i=0;i<10;i++)); do [ $i -lt $p ] && b+='\\e[1;32m❙\\e[0m' || b+='-'; done; b+=' ]'; fstype=$(findmnt -rn -o FSTYPE \"$devname\" 2>/dev/null | head -n1); [ -z \"$fstype\" ] && fstype=\"unknown\"; if findmnt -rn -o TARGET \"$devname\" 2>/dev/null | grep -Fxq \"/\"; then s_mp=\"/\"; elif [ \"$mp\" = \"/\" ]; then s_mp=\"/\"; else s_mp=\"/$(basename \"$mp\")\"; fi; printf -v line \"\\r\\e[${P}G%-14s: %b \\e[1;32m%s\\e[0m %s / %s - %s\\e[K\\n\" \"($s_mp)\" \"$b\" \"$perc\" \"$used\" \"$size\" \"$fstype\"; out+=\"$line\"; done <<< \"$parts\"; fi; done; echo -ne \"${out%\\n}\""
     },
     "break",
     {
@@ -116,4 +116,3 @@
     "break"
   ]
 }
-

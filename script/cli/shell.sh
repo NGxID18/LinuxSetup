@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing Zsh & plugins ($PKG)..."
 case "$PKG" in
@@ -23,5 +23,12 @@ case "$PKG" in
         ;;
 esac
 
+if [ -f "$HOME/.zshrc" ] && ! cmp -s "$ROOT_DIR/config/shell/.zshrc" "$HOME/.zshrc"; then
+    cp "$HOME/.zshrc" "$HOME/.zshrc.bak"
+fi
+
 cp "$ROOT_DIR/config/shell/.zshrc" "$HOME/.zshrc"
-sudo chsh -s "$(command -v zsh)" "$USER"
+
+TARGET_USER="${USER:-$(id -un)}"
+ZSH_BIN="$(command -v zsh)"
+sudo usermod -s "$ZSH_BIN" "$TARGET_USER"

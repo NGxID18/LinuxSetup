@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing NVIDIA driver & CUDA ($PKG)..."
 case "$PKG" in
@@ -39,7 +39,7 @@ case "$PKG" in
 
     pacman)
         HEADERS=(dkms)
-        for k in linux linux-zen linux-lts linux-hardened; do
+        for k in linux linux-zen linux-lts linux-hardened linux-cachyos; do
             if pacman -Qq "$k" >/dev/null 2>&1; then
                 HEADERS+=("${k}-headers")
             fi

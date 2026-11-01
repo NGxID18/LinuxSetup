@@ -1,6 +1,26 @@
 # Universal Linux Provisioning
 
-Minimalist provisioning scripts and dotfiles for **Debian/Ubuntu (`apt`)**, **RHEL/Fedora (`dnf`)**, and **Arch Linux (`pacman`)**.
+Minimalist, interactive provisioning scripts and dotfiles for **Debian/Ubuntu (`apt`)**, **Fedora/RHEL (`dnf`)**, and **Arch Linux (`pacman`)**.
+
+## Quick Install (One-Liner)
+
+### Recommended (`curl`)
+```bash
+curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh | bash
+```
+
+### Alternative (`wget`)
+```bash
+wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh | bash
+```
+
+## Manual Usage
+
+```bash
+git clone https://github.com/NGxID18/LinuxSetup.git
+cd LinuxSetup
+./install.sh
+```
 
 ## Structure
 
@@ -15,10 +35,15 @@ Minimalist provisioning scripts and dotfiles for **Debian/Ubuntu (`apt`)**, **RH
 └── script/
     ├── setup.sh
     ├── repository.sh
-    ├── gnome.sh
-    ├── cockpit.sh
-    ├── apps.sh
-    ├── zram.sh
+    ├── verify.sh
+    ├── DE/
+    │   └── gnome/
+    │       └── gnome.sh
+    ├── apps/
+    │   ├── main.sh
+    │   └── cockpit.sh
+    ├── zram/
+    │   └── zram.sh
     ├── driver/
     │   ├── nvidia/
     │   │   ├── nvidia.sh
@@ -31,10 +56,4 @@ Minimalist provisioning scripts and dotfiles for **Debian/Ubuntu (`apt`)**, **RH
         ├── fastfetch.sh
         ├── terminal.sh
         └── shell.sh
-```
-
-## Usage
-
-```bash
-./install.sh
 ```

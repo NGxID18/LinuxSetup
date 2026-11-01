@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Configuring 5060tune service..."
-sudo tee /etc/systemd/system/5060tune.service > /dev/null <<EOF
+sudo tee /etc/systemd/system/5060tune.service > /dev/null <<'EOF'
 [Unit]
 Description=NVIDIA GPU Power and Clock Limit
 After=nvidia-persistenced.service
@@ -19,4 +19,10 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now 5060tune.service
+sudo systemctl enable 5060tune.service
+
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+    sudo systemctl start 5060tune.service
+else
+    echo "==> Note: 5060tune.service enabled and will take effect after reboot."
+fi

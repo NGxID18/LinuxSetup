@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing native apps ($PKG)..."
 case "$PKG" in
     apt)
         if [ ! -f /etc/apt/sources.list.d/vscodium.list ]; then
             curl -fsSL https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg \
-                | gpg --dearmor \
+                | gpg --dearmor --yes \
                 | sudo tee /usr/share/keyrings/vscodium.gpg > /dev/null
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/vscodium.gpg] https://download.vscodium.com/debs vscodium main" \
                 | sudo tee /etc/apt/sources.list.d/vscodium.list > /dev/null
@@ -34,15 +34,16 @@ case "$PKG" in
 
     dnf)
         if [ ! -f /etc/yum.repos.d/vscodium.repo ]; then
-            sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg
-            sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null << 'EOF'
+            sudo rpmkeys --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
+            sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'EOF'
 [vscodium]
 name=VSCodium
-baseurl=https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/
+baseurl=https://download.vscodium.com/rpms/
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
-gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg
+gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
+metadata_expire=1h
 EOF
         fi
 
@@ -51,13 +52,18 @@ EOF
             codium \
             tuned \
             snapper \
-            btrfs-progs
+            btrfs-progs \
+            lvm2 \
+            ntfs-3g \
+            exfatprogs \
+            xfsprogs \
+            cronie
 
         if ! command -v tailscale >/dev/null 2>&1; then
             curl -fsSL https://tailscale.com/install.sh | sudo sh
         fi
 
-        sudo systemctl enable --now tailscaled tuned
+        sudo systemctl enable --now tailscaled crond tuned
         ;;
 
     pacman)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing Cockpit and modules ($PKG)..."
 case "$PKG" in
@@ -11,6 +11,7 @@ case "$PKG" in
             cockpit-storaged \
             cockpit-packagekit \
             cockpit-networkmanager \
+            udisks2 \
             udisks2-lvm2 \
             udisks2-btrfs \
             pcp \
@@ -23,7 +24,10 @@ case "$PKG" in
             cockpit-files \
             cockpit-podman \
             cockpit-machines \
-            cockpit-storaged
+            cockpit-storaged \
+            udisks2-btrfs \
+            udisks2-lvm2 \
+            pcp
         ;;
 
     pacman)
@@ -44,14 +48,13 @@ case "$PKG" in
             inetutils
 
         paru -S --needed --noconfirm cockpit-pacman
-        sudo chmod 700 /etc/pacman.d/gnupg 2>/dev/null || true
         ;;
 esac
 
 if [ ! -d /usr/share/cockpit/btrfs-manager ]; then
     echo "==> Installing Cockpit Btrfs Manager module..."
     sudo mkdir -p /usr/share/cockpit
-    sudo git clone https://github.com/NGxID18/btrfs-manager /usr/share/cockpit/btrfs-manager
+    sudo git clone --depth 1 https://github.com/NGxID18/btrfs-manager /usr/share/cockpit/btrfs-manager
 fi
 
 sudo systemctl enable --now cockpit.socket

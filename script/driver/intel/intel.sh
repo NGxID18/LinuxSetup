@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing Intel GPU driver ($PKG)..."
 case "$PKG" in
     apt)
         sudo DEBIAN_FRONTEND=noninteractive apt install -y \
             mesa-vulkan-drivers \
-            intel-media-va-driver \
             i965-va-driver \
             libgl1-mesa-dri
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y intel-media-va-driver-non-free \
+            || sudo DEBIAN_FRONTEND=noninteractive apt install -y intel-media-va-driver
         ;;
 
     dnf)

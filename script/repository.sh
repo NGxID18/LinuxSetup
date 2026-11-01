@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 case "$PKG" in
     apt)
         echo "==> Configuring APT repositories & updating system..."
         sudo apt update -y
         sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-            software-properties-common ca-certificates gnupg curl wget git unzip flatpak
+            ca-certificates gnupg curl wget git unzip tar xz-utils flatpak
 
-        if grep -qi ubuntu /etc/os-release; then
+        if grep -qiE '^ID(_LIKE)?=.*ubuntu' /etc/os-release; then
+            sudo DEBIAN_FRONTEND=noninteractive apt install -y software-properties-common
             sudo add-apt-repository -y universe
             sudo add-apt-repository -y multiverse
         else
-            sudo sed -i 's/main$/main contrib non-free non-free-firmware/g' /etc/apt/sources.list 2>/dev/null || true
-            sudo sed -i 's/Components: main$/Components: main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+            if [ -f /etc/apt/sources.list ]; then
+                sudo sed -i -E '/^[[:space:]]*deb(-src)?[[:space:]]/ s/\bmain([[:space:]]+(contrib|non-free|non-free-firmware))*\b/main contrib non-free non-free-firmware/g' /etc/apt/sources.list
+            fi
+            if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+                sudo sed -i -E '/^Components:/ s/\bmain([[:space:]]+(contrib|non-free|non-free-firmware))*\b/main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources
+            fi
         fi
 
         sudo apt update -y
@@ -22,24 +27,33 @@ case "$PKG" in
 
     dnf)
         echo "==> Configuring RPM Fusion & updating system..."
-        sudo dnf install -y \
-            "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
-            "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
+        if [ "$(rpm -E %fedora)" != "%fedora" ]; then
+            FEDORA_VER="$(rpm -E %fedora)"
+            sudo dnf install -y \
+                "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
+                "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"
+        elif [ "$(rpm -E %rhel)" != "%rhel" ]; then
+            RHEL_VER="$(rpm -E %rhel)"
+            sudo dnf install -y epel-release
+            sudo dnf config-manager --set-enabled crb 2>/dev/null || true
+            sudo dnf install -y --nogpgcheck \
+                "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-${RHEL_VER}.noarch.rpm" \
+                "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-${RHEL_VER}.noarch.rpm"
+        fi
 
-        sudo dnf clean all
         sudo dnf upgrade --refresh -y
-        sudo dnf install -y git curl wget unzip flatpak
+        sudo dnf install -y git curl wget unzip tar xz flatpak
         ;;
 
     pacman)
         echo "==> Updating Arch Linux & installing base-devel..."
         sudo pacman -Syu --noconfirm
-        sudo pacman -S --needed --noconfirm base-devel git curl wget unzip flatpak
+        sudo pacman -S --needed --noconfirm base-devel git curl wget unzip tar xz flatpak
 
         if ! command -v paru >/dev/null 2>&1; then
-            echo "==> Building & installing Paru AUR helper..."
-            BUILD_DIR=$(mktemp -d /tmp/paru.XXXXXX)
-            git clone https://aur.archlinux.org/paru.git "$BUILD_DIR"
+            echo "==> Building & installing Paru AUR helper (paru-bin)..."
+            BUILD_DIR="$(mktemp -d /tmp/paru.XXXXXX)"
+            git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$BUILD_DIR"
             (cd "$BUILD_DIR" && makepkg -si --noconfirm)
             rm -rf "$BUILD_DIR"
         fi

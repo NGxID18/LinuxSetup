@@ -9,9 +9,16 @@ echo "  1) NVIDIA"
 echo "  2) AMD"
 echo "  3) Intel"
 echo "  4) Skip"
-read -rp "Choice [1-4, default 4]: " GPU_CHOICE
-GPU_CHOICE="${GPU_CHOICE:-4}"
+while true; do
+    read -rp "Choice [1-4, default 4]: " GPU_CHOICE
+    GPU_CHOICE="${GPU_CHOICE:-4}"
+    case "$GPU_CHOICE" in
+        [1-4]) break ;;
+        *) echo "  -> Invalid input. Please enter 1, 2, 3, or 4." ;;
+    esac
+done
 
+NVD_TUNE="N"
 if [ "$GPU_CHOICE" = "1" ]; then
     read -rp "  -> Apply RTX 5060 power & clock limit (5060tune)? [y/N]: " NVD_TUNE
     NVD_TUNE="${NVD_TUNE:-N}"
@@ -38,4 +45,3 @@ read -rp "Choice [y/N]: " INSTALL_ZRAM
 INSTALL_ZRAM="${INSTALL_ZRAM:-N}"
 
 export GPU_CHOICE NVD_TUNE INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS INSTALL_CLI INSTALL_ZRAM
-

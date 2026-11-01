@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing AMD GPU driver ($PKG)..."
 case "$PKG" in
@@ -14,9 +14,11 @@ case "$PKG" in
     dnf)
         sudo dnf install -y \
             mesa-dri-drivers \
-            mesa-vulkan-drivers \
-            mesa-va-drivers \
-            mesa-vdpau-drivers
+            mesa-vulkan-drivers
+        sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld --allowerasing \
+            || sudo dnf install -y mesa-va-drivers
+        sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld --allowerasing \
+            || sudo dnf install -y mesa-vdpau-drivers
         ;;
 
     pacman)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Installing zRAM ($PKG)..."
 case "$PKG" in
@@ -8,7 +8,7 @@ case "$PKG" in
     pacman) sudo pacman -S --needed --noconfirm zram-generator ;;
 esac
 
-sudo tee /etc/systemd/zram-generator.conf > /dev/null <<EOF
+sudo tee /etc/systemd/zram-generator.conf > /dev/null <<'EOF'
 [zram0]
 zram-size = 32768
 compression-algorithm = zstd
