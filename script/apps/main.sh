@@ -97,5 +97,10 @@ sudo flatpak install -y flathub \
     io.gitlab.librewolf-community \
     org.prismlauncher.PrismLauncher \
     com.rtosta.zapzap \
-    com.obsproject.Studio \
-    org.freedesktop.Platform.VulkanLayer.OBSVkCapture
+    com.obsproject.Studio
+
+echo "==> Installing latest OBSVkCapture Vulkan layer..."
+LATEST_VKCAPTURE=$(flatpak remote-ls flathub --columns=ref 2>/dev/null | grep 'org.freedesktop.Platform.VulkanLayer.OBSVkCapture/' | sort -V | tail -n 1 || true)
+if [ -n "$LATEST_VKCAPTURE" ]; then
+    sudo flatpak install -y flathub "$LATEST_VKCAPTURE"
+fi
