@@ -1,76 +1,48 @@
-# Cockpit Web Console Auto-Installer
+# Cockpit Installer
 
-Automated, lightweight, and universal installer for **Cockpit Web Console** and its companion modules across **Debian/Ubuntu (`apt`)**, **Fedora/RHEL (`dnf`)**, and **Arch Linux (`pacman`)**.
+Minimal bash script to install Cockpit and default modules (`storaged`, `networkmanager`) on Linux.
 
-This branch (`Cockpit`) focuses exclusively on Cockpit, its management modules, performance monitoring, and filesystem utilities without altering desktop environments, drivers, or general system dotfiles.
+## Install
 
----
-
-## Quick Install (One-Liner)
-
-### Recommended (`curl`)
+### One-liner (curl)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/Cockpit/install.sh | bash
 ```
 
-### Alternative (`wget`)
+### One-liner (wget)
 ```bash
 wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/Cockpit/install.sh | bash
 ```
 
-### Non-Interactive (Unattended)
-```bash
-curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/Cockpit/install.sh | bash -s -- -y
-```
-
----
-
-## Manual Usage
-
+### Manual
 ```bash
 git clone -b Cockpit https://github.com/NGxID18/LinuxSetup.git
 cd LinuxSetup
 ./install.sh
 ```
 
----
+Pass `-y` for non-interactive / unattended installation.
 
-## Included Features & Modules
+## Supported Distros
 
-| Module / Component | Description |
-| :--- | :--- |
-| **Cockpit Core** | Lightweight web-based graphical interface for Linux systems. |
-| **Storage Management** | Disk, partition, RAID, LVM2, and Btrfs tools via `cockpit-storaged` and `udisks2`. |
-| **Containers** | Podman container management via `cockpit-podman`. |
-| **Virtual Machines** | KVM / QEMU virtual machine management via `cockpit-machines`. |
-| **File Browser** | File navigation and management via `cockpit-files`. |
-| **Network Management** | Network interfaces, bridges, and bonding via `cockpit-networkmanager`. |
-| **Software Updates** | OS update manager via `cockpit-packagekit` (and `cockpit-pacman` on Arch). |
-| **Metrics & Performance** | Historical CPU/RAM/Disk performance charts via Performance Co-Pilot (`pcp`). |
-| **Btrfs Manager** | Custom Btrfs snapshot & subvolume manager ([NGxID18/btrfs-manager](https://github.com/NGxID18/btrfs-manager)). |
-| **Firewall Setup** | Automatically opens TCP port `9090` in `firewalld` or `ufw` if active. |
+- **openSUSE** (Leap / Tumbleweed)
+- **Fedora / RHEL**
+- **Debian / Ubuntu**
+- **Arch Linux**
 
----
+## Included Packages
 
-## Repository Structure
+- `cockpit`
+- `cockpit-storaged` (`udisks2`)
+- `cockpit-networkmanager`
+- `cockpit-selinux` (Fedora / RHEL only)
 
-```text
-.
-├── README.md
-├── install.sh
-└── script/
-    ├── repository.sh   # Configures repository prerequisites
-    ├── cockpit.sh      # Installs Cockpit, modules, permissions & services
-    └── verify.sh       # Verifies installed packages, sockets, and access URLs
-```
+Enables `cockpit.socket` and opens port `9090` in `firewalld` or `ufw` if active.
 
----
+## Access
 
-## Accessing Cockpit
+Open your browser:
+- `https://localhost:9090`
+- `https://<server-ip>:9090`
 
-Once installation is complete:
-1. Open your web browser and navigate to:
-   * **Local:** `https://localhost:9090`
-   * **Remote:** `https://<server-ip>:9090`
-2. Accept the self-signed SSL certificate notice (if first time).
-3. Log in using your existing Linux user account and password.
+Log in using your system username and password.

@@ -58,10 +58,12 @@ if command -v apt >/dev/null 2>&1; then
     PKG="apt"
 elif command -v dnf >/dev/null 2>&1; then
     PKG="dnf"
+elif command -v zypper >/dev/null 2>&1; then
+    PKG="zypper"
 elif command -v pacman >/dev/null 2>&1; then
     PKG="pacman"
 else
-    echo "ERROR: Unsupported package manager (requires apt, dnf, or pacman)." >&2
+    echo "ERROR: Unsupported package manager (requires apt, dnf, zypper, or pacman)." >&2
     exit 1
 fi
 
@@ -71,15 +73,13 @@ echo "=================================================="
 echo "        COCKPIT WEB CONSOLE AUTO-INSTALLER        "
 echo "=================================================="
 echo "Package Manager: $PKG"
-echo "Included Modules:"
-echo " - Cockpit Web Console Core"
-echo " - Storage Management (udisks2, LVM, Btrfs, RAID, NFS/CIFS)"
-echo " - Podman Containers"
-echo " - Virtual Machines (KVM/Libvirt)"
-echo " - Network & Firewall Integration"
-echo " - Performance Metrics (PCP)"
-echo " - Software Updates (PackageKit / Cockpit-Pacman)"
-echo " - Btrfs Manager (https://github.com/NGxID18/btrfs-manager)"
+echo "Included Components:"
+echo " - Cockpit Core (Web Console, System, Bridge)"
+echo " - Storage Management (cockpit-storaged, udisks2)"
+echo " - Network Management (cockpit-networkmanager)"
+echo " - Security Integration (cockpit-selinux on Fedora/RHEL)"
+echo " - Service Activation (cockpit.socket)"
+echo " - Firewall Configuration (Port 9090)"
 echo "=================================================="
 
 if [ "$ASSUME_YES" -eq 0 ]; then
