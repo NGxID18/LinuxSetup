@@ -6,6 +6,8 @@ if [ -z "${PKG:-}" ]; then
         PKG="apt"
     elif command -v dnf >/dev/null 2>&1; then
         PKG="dnf"
+    elif command -v zypper >/dev/null 2>&1; then
+        PKG="zypper"
     elif command -v pacman >/dev/null 2>&1; then
         PKG="pacman"
     else
@@ -134,25 +136,16 @@ fi
 if [[ "$INSTALL_COCKPIT" =~ ^[Yy]$ ]]; then
     case "$PKG" in
         apt)
-            NATIVE_PKGS+=(
-                cockpit cockpit-podman cockpit-machines cockpit-storaged
-                cockpit-packagekit cockpit-networkmanager udisks2 udisks2-lvm2
-                udisks2-btrfs pcp packagekit
-            )
+            NATIVE_PKGS+=(cockpit cockpit-storaged cockpit-networkmanager udisks2)
             ;;
         dnf)
-            NATIVE_PKGS+=(
-                cockpit cockpit-files cockpit-podman cockpit-machines
-                cockpit-storaged udisks2-btrfs udisks2-lvm2 pcp
-            )
+            NATIVE_PKGS+=(cockpit cockpit-storaged cockpit-networkmanager cockpit-selinux udisks2)
+            ;;
+        zypper)
+            NATIVE_PKGS+=(cockpit cockpit-storaged cockpit-networkmanager udisks2)
             ;;
         pacman)
-            NATIVE_PKGS+=(
-                cockpit cockpit-files cockpit-podman cockpit-machines
-                cockpit-storaged cockpit-packagekit packagekit udisks2
-                udisks2-btrfs udisks2-lvm2 pcp mdadm nfs-utils inetutils
-                cockpit-pacman
-            )
+            NATIVE_PKGS+=(cockpit cockpit-storaged udisks2 networkmanager)
             ;;
     esac
 fi
@@ -225,7 +218,7 @@ is_native_installed() {
                     return 0
                 fi
                 ;;
-            dnf)
+            dnf|zypper)
                 if rpm -q "$candidate" >/dev/null 2>&1 || rpm -q --whatprovides "$candidate" >/dev/null 2>&1; then
                     return 0
                 fi

@@ -1,60 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing Cockpit and modules ($PKG)..."
+echo "==> Installing Cockpit core and default extensions ($PKG)..."
+
 case "$PKG" in
     apt)
         sudo DEBIAN_FRONTEND=noninteractive apt install -y \
             cockpit \
-            cockpit-podman \
-            cockpit-machines \
             cockpit-storaged \
-            cockpit-packagekit \
             cockpit-networkmanager \
-            udisks2 \
-            udisks2-lvm2 \
-            udisks2-btrfs \
-            pcp \
-            packagekit
+            udisks2
         ;;
 
     dnf)
         sudo dnf install -y \
             cockpit \
-            cockpit-files \
-            cockpit-podman \
-            cockpit-machines \
             cockpit-storaged \
-            udisks2-btrfs \
-            udisks2-lvm2 \
-            pcp
+            cockpit-networkmanager \
+            cockpit-selinux \
+            udisks2
+        ;;
+
+    zypper)
+        sudo zypper --non-interactive install -y \
+            cockpit \
+            cockpit-storaged \
+            cockpit-networkmanager \
+            udisks2
         ;;
 
     pacman)
         sudo pacman -S --needed --noconfirm \
             cockpit \
-            cockpit-files \
-            cockpit-podman \
-            cockpit-machines \
             cockpit-storaged \
-            cockpit-packagekit \
-            packagekit \
             udisks2 \
-            udisks2-btrfs \
-            udisks2-lvm2 \
-            pcp \
-            mdadm \
-            nfs-utils \
-            inetutils
-
-        paru -S --needed --noconfirm cockpit-pacman
+            networkmanager
         ;;
 esac
 
-if [ ! -d /usr/share/cockpit/btrfs-manager ]; then
-    echo "==> Installing Cockpit Btrfs Manager module..."
-    sudo mkdir -p /usr/share/cockpit
-    sudo git clone --depth 1 https://github.com/NGxID18/btrfs-manager /usr/share/cockpit/btrfs-manager
-fi
-
+# Enable and Start Cockpit Socket
+echo "==> Enabling Cockpit systemd socket..."
+sudo systemctl daemon-reload
 sudo systemctl enable --now cockpit.socket
+
+# Firewall Configuration (Port 9090)
+echo "==> Configuring firewall for Cockpit (port 9090)..."
+if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
+    sudo firewall-cmd --add-service=cockpit --permanent 2>/dev/null || sudo firewall-cmd --add-port=9090/tcp --permanent 2>/dev/null || true
+    sudo firewall-cmd --reload 2>/dev/null || true
+    echo "  -> Firewalld: Port 9090 / cockpit service allowed."
+elif command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+    sudo ufw allow 9090/tcp comment 'Cockpit Web Console' 2>/dev/null || true
+    echo "  -> UFW: Port 9090/tcp allowed."
+fi
