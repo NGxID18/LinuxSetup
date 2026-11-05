@@ -14,204 +14,62 @@ if [ -z "${PKG:-}" ]; then
     fi
 fi
 
-GPU_CHOICE="${GPU_CHOICE:-4}"
-INSTALL_GNOME="${INSTALL_GNOME:-Y}"
-INSTALL_COCKPIT="${INSTALL_COCKPIT:-Y}"
-INSTALL_APPS="${INSTALL_APPS:-Y}"
-INSTALL_CLI="${INSTALL_CLI:-Y}"
-INSTALL_ZRAM="${INSTALL_ZRAM:-N}"
+COCKPIT_PKGS=()
 
-NATIVE_PKGS=()
-FLATPAK_PKGS=()
-
-# 1. Base / Repository packages
 case "$PKG" in
     apt)
-        NATIVE_PKGS+=(ca-certificates gnupg curl wget git unzip tar xz-utils flatpak)
-        if grep -qiE '^ID(_LIKE)?=.*ubuntu' /etc/os-release; then
-            NATIVE_PKGS+=(software-properties-common)
-        fi
+        COCKPIT_PKGS=(
+            cockpit
+            cockpit-podman
+            cockpit-machines
+            cockpit-storaged
+            cockpit-packagekit
+            cockpit-networkmanager
+            udisks2
+            udisks2-lvm2
+            udisks2-btrfs
+            btrfs-progs
+            pcp
+            packagekit
+            podman
+        )
         ;;
     dnf)
-        NATIVE_PKGS+=(git curl wget unzip tar xz flatpak)
+        COCKPIT_PKGS=(
+            cockpit
+            cockpit-files
+            cockpit-podman
+            cockpit-machines
+            cockpit-storaged
+            cockpit-networkmanager
+            cockpit-packagekit
+            cockpit-selinux
+            udisks2-btrfs
+            udisks2-lvm2
+            btrfs-progs
+            pcp
+            podman
+        )
         ;;
     pacman)
-        NATIVE_PKGS+=(base-devel git curl wget unzip tar xz flatpak "paru-bin|paru")
+        COCKPIT_PKGS=(
+            cockpit
+            cockpit-files
+            cockpit-podman
+            cockpit-machines
+            cockpit-storaged
+            cockpit-packagekit
+            packagekit
+            udisks2
+            udisks2-btrfs
+            udisks2-lvm2
+            btrfs-progs
+            pcp
+            mdadm
+            podman
+        )
         ;;
 esac
-
-# 2. GPU Driver packages
-case "$GPU_CHOICE" in
-    1)
-        case "$PKG" in
-            apt)
-                NATIVE_PKGS+=(
-                    "linux-headers-$(uname -r)"
-                    dkms
-                    build-essential
-                    "nvidia-driver|nvidia-driver-*"
-                    "nvidia-smi|nvidia-utils-*"
-                    nvidia-persistenced
-                    nvidia-cuda-toolkit
-                    nvidia-vaapi-driver
-                )
-                ;;
-            dnf)
-                NATIVE_PKGS+=(
-                    akmod-nvidia
-                    xorg-x11-drv-nvidia-cuda
-                    nvidia-persistenced
-                )
-                ;;
-            pacman)
-                NATIVE_PKGS+=(dkms)
-                FOUND_HDR=0
-                for k in linux linux-zen linux-lts linux-hardened linux-cachyos; do
-                    if pacman -Qq "$k" >/dev/null 2>&1; then
-                        NATIVE_PKGS+=("${k}-headers")
-                        FOUND_HDR=1
-                    fi
-                done
-                [ "$FOUND_HDR" -eq 0 ] && NATIVE_PKGS+=(linux-headers)
-                NATIVE_PKGS+=(
-                    nvidia-open-dkms
-                    nvidia-utils
-                    opencl-nvidia
-                    libva-nvidia-driver
-                    nvidia-settings
-                    cuda
-                    cudnn
-                )
-                ;;
-        esac
-        ;;
-    2)
-        case "$PKG" in
-            apt)    NATIVE_PKGS+=(mesa-vulkan-drivers mesa-va-drivers libgl1-mesa-dri xserver-xorg-video-amdgpu) ;;
-            dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers "mesa-va-drivers-freeworld|mesa-va-drivers" "mesa-vdpau-drivers-freeworld|mesa-vdpau-drivers") ;;
-            pacman) NATIVE_PKGS+=(mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu) ;;
-        esac
-        ;;
-    3)
-        case "$PKG" in
-            apt)    NATIVE_PKGS+=(mesa-vulkan-drivers i965-va-driver libgl1-mesa-dri "intel-media-va-driver-non-free|intel-media-va-driver") ;;
-            dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers intel-media-driver libva-intel-driver) ;;
-            pacman) NATIVE_PKGS+=(mesa vulkan-intel intel-media-driver libva-intel-driver) ;;
-        esac
-        ;;
-esac
-
-# 3. GNOME Desktop packages
-if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
-    case "$PKG" in
-        apt)
-            NATIVE_PKGS+=(
-                gdm3 gnome-shell gnome-session gnome-settings-daemon gnome-control-center
-                gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk
-                gvfs-backends gvfs-fuse network-manager-gnome nautilus file-roller
-                gnome-text-editor gnome-calculator gnome-software gnome-software-plugin-flatpak
-                gnome-tweaks gnome-shell-extension-prefs dconf-cli
-            )
-            ;;
-        dnf)
-            NATIVE_PKGS+=(
-                gdm gnome-shell nautilus gnome-text-editor gnome-calculator
-                gnome-software gnome-tweaks gnome-extensions-app
-            )
-            ;;
-        pacman)
-            NATIVE_PKGS+=(
-                gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
-                gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk
-                gvfs gvfs-mtp gvfs-smb gvfs-nfs nautilus file-roller loupe
-                gnome-text-editor gnome-calculator gnome-software gnome-tweaks extension-manager
-            )
-            ;;
-    esac
-fi
-
-# 4. Cockpit packages
-if [[ "$INSTALL_COCKPIT" =~ ^[Yy]$ ]]; then
-    case "$PKG" in
-        apt)
-            NATIVE_PKGS+=(
-                cockpit cockpit-podman cockpit-machines cockpit-storaged
-                cockpit-packagekit cockpit-networkmanager udisks2 udisks2-lvm2
-                udisks2-btrfs pcp packagekit
-            )
-            ;;
-        dnf)
-            NATIVE_PKGS+=(
-                cockpit cockpit-files cockpit-podman cockpit-machines
-                cockpit-storaged udisks2-btrfs udisks2-lvm2 pcp
-            )
-            ;;
-        pacman)
-            NATIVE_PKGS+=(
-                cockpit cockpit-files cockpit-podman cockpit-machines
-                cockpit-storaged cockpit-packagekit packagekit udisks2
-                udisks2-btrfs udisks2-lvm2 pcp mdadm nfs-utils inetutils
-                cockpit-pacman
-            )
-            ;;
-    esac
-fi
-
-# 5. Applications (Native & Flatpak)
-if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
-    case "$PKG" in
-        apt)
-            NATIVE_PKGS+=(
-                flatseal codium tuned snapper btrfs-progs
-                lvm2 ntfs-3g exfatprogs xfsprogs cron tailscale
-            )
-            ;;
-        dnf)
-            NATIVE_PKGS+=(
-                flatseal codium tuned snapper btrfs-progs
-                lvm2 ntfs-3g exfatprogs xfsprogs cronie tailscale
-            )
-            ;;
-        pacman)
-            NATIVE_PKGS+=(
-                flatseal mission-center tuned snapper tailscale cronie
-                util-linux udisks2 lvm2 udisks2-lvm2 btrfs-progs udisks2-btrfs
-                ntfs-3g xfsprogs exfatprogs vscodium-bin
-            )
-            ;;
-    esac
-
-    FLATPAK_PKGS+=(
-        com.valvesoftware.Steam
-        com.discordapp.Discord
-        io.gitlab.librewolf-community
-        org.prismlauncher.PrismLauncher
-        com.rtosta.zapzap
-        com.obsproject.Studio
-        org.freedesktop.Platform.VulkanLayer.OBSVkCapture
-    )
-fi
-
-# 6. zRAM packages
-if [[ "$INSTALL_ZRAM" =~ ^[Yy]$ ]]; then
-    case "$PKG" in
-        apt)    NATIVE_PKGS+=(systemd-zram-generator) ;;
-        dnf)    NATIVE_PKGS+=(zram-generator) ;;
-        pacman) NATIVE_PKGS+=(zram-generator) ;;
-    esac
-fi
-
-# 7. CLI packages
-if [[ "$INSTALL_CLI" =~ ^[Yy]$ ]]; then
-    case "$PKG" in
-        apt|dnf)
-            NATIVE_PKGS+=(fastfetch kitty fontconfig zsh zsh-autosuggestions zsh-syntax-highlighting)
-            ;;
-        pacman)
-            NATIVE_PKGS+=(fastfetch kitty fontconfig ttf-jetbrains-mono-nerd zsh zsh-autosuggestions zsh-syntax-highlighting)
-            ;;
-    esac
-fi
 
 is_native_installed() {
     local spec="$1"
@@ -220,8 +78,7 @@ is_native_installed() {
     for candidate in "${candidates[@]}"; do
         case "$PKG" in
             apt)
-                # shellcheck disable=SC2086
-                if dpkg-query -W -f='${Status}\n' $candidate 2>/dev/null | grep -Fxq "install ok installed"; then
+                if dpkg-query -W -f='${Status}\n' "$candidate" 2>/dev/null | grep -Fxq "install ok installed"; then
                     return 0
                 fi
                 ;;
@@ -240,25 +97,16 @@ is_native_installed() {
     return 1
 }
 
-is_flatpak_installed() {
-    flatpak info "$1" >/dev/null 2>&1
-}
-
 echo -e "\n=================================================="
-echo "           INSTALLATION VERIFICATION              "
+echo "          COCKPIT INSTALLATION VERIFICATION       "
 echo "=================================================="
-
-declare -A SEEN_NATIVE=()
-declare -A SEEN_FLATPAK=()
 
 TOTAL_PKGS=0
 INSTALLED_PKGS=0
 MISSING_PKGS=()
 
-echo -e "\n--> Checking Native Packages ($PKG):"
-for pkg in "${NATIVE_PKGS[@]}"; do
-    [ -n "${SEEN_NATIVE[$pkg]:-}" ] && continue
-    SEEN_NATIVE[$pkg]=1
+echo -e "\n--> Checking Cockpit Packages ($PKG):"
+for pkg in "${COCKPIT_PKGS[@]}"; do
     TOTAL_PKGS=$((TOTAL_PKGS + 1))
     LABEL="${pkg%%|*}"
 
@@ -271,21 +119,28 @@ for pkg in "${NATIVE_PKGS[@]}"; do
     fi
 done
 
-if [ "${#FLATPAK_PKGS[@]}" -gt 0 ]; then
-    echo -e "\n--> Checking Flatpak Packages:"
-    for app in "${FLATPAK_PKGS[@]}"; do
-        [ -n "${SEEN_FLATPAK[$app]:-}" ] && continue
-        SEEN_FLATPAK[$app]=1
-        TOTAL_PKGS=$((TOTAL_PKGS + 1))
+echo -e "\n--> Checking Modules & Extensions:"
+if [ -d /usr/share/cockpit/btrfs-manager ]; then
+    printf "  [\e[1;32mOK\e[0m]      btrfs-manager (/usr/share/cockpit/btrfs-manager)\n"
+else
+    printf "  [\e[1;31mMISSING\e[0m] btrfs-manager (/usr/share/cockpit/btrfs-manager)\n"
+    MISSING_PKGS+=("btrfs-manager module")
+fi
 
-        if is_flatpak_installed "$app"; then
-            printf "  [\e[1;32mOK\e[0m]      %s\n" "$app"
-            INSTALLED_PKGS=$((INSTALLED_PKGS + 1))
-        else
-            printf "  [\e[1;31mMISSING\e[0m] %s\n" "$app"
-            MISSING_PKGS+=("$app (flatpak)")
-        fi
-    done
+echo -e "\n--> Checking System Services:"
+if systemctl is-active --quiet cockpit.socket 2>/dev/null; then
+    printf "  [\e[1;32mACTIVE\e[0m]  cockpit.socket (Listening on port 9090)\n"
+elif systemctl is-enabled --quiet cockpit.socket 2>/dev/null; then
+    printf "  [\e[1;33mENABLED\e[0m] cockpit.socket (Will activate on next boot / socket trigger)\n"
+else
+    printf "  [\e[1;31mINACTIVE\e[0m] cockpit.socket\n"
+    MISSING_PKGS+=("cockpit.socket service")
+fi
+
+if systemctl is-active --quiet pmproxy.service 2>/dev/null || systemctl is-active --quiet pmlogger.service 2>/dev/null; then
+    printf "  [\e[1;32mACTIVE\e[0m]  PCP Metrics Services (Performance graphs enabled)\n"
+else
+    printf "  [\e[1;33mOPTIONAL\e[0m] PCP Metrics Services (pmproxy/pmlogger inactive or not required)\n"
 fi
 
 PERCENT=0
@@ -293,15 +148,29 @@ if [ "$TOTAL_PKGS" -gt 0 ]; then
     PERCENT=$(( (INSTALLED_PKGS * 100) / TOTAL_PKGS ))
 fi
 
-echo "--------------------------------------------------"
+echo -e "\n--------------------------------------------------"
 echo "  Installed : ${INSTALLED_PKGS} / ${TOTAL_PKGS} packages (${PERCENT}%)"
 if [ "${#MISSING_PKGS[@]}" -eq 0 ]; then
-    echo -e "  Status    : \e[1;32mAll selected dependencies are installed!\e[0m"
+    echo -e "  Status    : \e[1;32mCockpit and all dependencies are ready!\e[0m"
 else
-    echo -e "  Status    : \e[1;33m${#MISSING_PKGS[@]} package(s) missing:\e[0m"
+    echo -e "  Status    : \e[1;33m${#MISSING_PKGS[@]} item(s) need attention:\e[0m"
     for m in "${MISSING_PKGS[@]}"; do
         echo "              - $m"
     done
 fi
-echo "=================================================="
 
+echo -e "\n=================================================="
+echo "          HOW TO ACCESS COCKPIT WEB CONSOLE       "
+echo "=================================================="
+echo "  Local Access   : https://localhost:9090"
+
+# Detect network IPs
+IP_LIST=$(ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' || true)
+if [ -n "$IP_LIST" ]; then
+    echo "  Network Access :"
+    for ip in $IP_LIST; do
+        echo "                   https://$ip:9090"
+    done
+fi
+echo "  Credentials    : Use your Linux system user and password"
+echo "=================================================="
