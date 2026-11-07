@@ -33,10 +33,10 @@ case "$PKG" in
         sudo dnf install -y \
             "kernel-devel-${CURRENT_KERNEL}" \
             kernel-headers \
-            akmod-nvidia \
+            akmod-nvidia-open \
             xorg-x11-drv-nvidia-cuda \
             nvidia-persistenced \
-            || sudo dnf install -y kernel-devel kernel-headers akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-persistenced
+            || sudo dnf install -y kernel-devel kernel-headers akmod-nvidia-open xorg-x11-drv-nvidia-cuda nvidia-persistenced
 
         sudo systemctl enable nvidia-persistenced.service 2>/dev/null || true
         sudo akmods --force || true
