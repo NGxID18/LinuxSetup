@@ -1,40 +1,56 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing Cockpit core and default extensions ($PKG)..."
+echo "==> Installing Cockpit core and default extensions ($PKG | ${DISTRO:-$PKG})..."
 
 case "$PKG" in
     apt)
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-            cockpit \
-            cockpit-storaged \
-            cockpit-networkmanager \
-            udisks2
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+                    cockpit \
+                    cockpit-storaged \
+                    cockpit-networkmanager \
+                    udisks2
+                ;;
+        esac
         ;;
 
     dnf)
-        sudo dnf install -y \
-            cockpit \
-            cockpit-storaged \
-            cockpit-networkmanager \
-            cockpit-selinux \
-            udisks2
+        case "${DISTRO:-fedora}" in
+            fedora|rhel|*)
+                sudo dnf install -y \
+                    cockpit \
+                    cockpit-storaged \
+                    cockpit-networkmanager \
+                    cockpit-selinux \
+                    udisks2
+                ;;
+        esac
         ;;
 
     zypper)
-        sudo zypper --non-interactive install -y \
-            cockpit \
-            cockpit-storaged \
-            cockpit-networkmanager \
-            udisks2
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y \
+                    cockpit \
+                    cockpit-storaged \
+                    cockpit-networkmanager \
+                    udisks2
+                ;;
+        esac
         ;;
 
     pacman)
-        sudo pacman -S --needed --noconfirm \
-            cockpit \
-            cockpit-storaged \
-            udisks2 \
-            networkmanager
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm \
+                    cockpit \
+                    cockpit-storaged \
+                    udisks2 \
+                    networkmanager
+                ;;
+        esac
         ;;
 esac
 

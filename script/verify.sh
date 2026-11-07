@@ -1,15 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ -z "${PKG:-}" ]; then
+if [ -z "${PKG:-}" ] || [ -z "${DISTRO:-}" ]; then
+    DISTRO_ID="unknown"
+    DISTRO_LIKE=""
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        DISTRO_ID="${ID:-unknown}"
+        DISTRO_LIKE="${ID_LIKE:-}"
+    fi
+
     if command -v apt >/dev/null 2>&1; then
         PKG="apt"
+        case "$DISTRO_ID" in
+            ubuntu|linuxmint|pop) DISTRO="ubuntu" ;;
+            debian|*)
+                if [[ "$DISTRO_LIKE" == *ubuntu* ]]; then DISTRO="ubuntu"; else DISTRO="debian"; fi
+                ;;
+        esac
     elif command -v dnf >/dev/null 2>&1; then
         PKG="dnf"
+        case "$DISTRO_ID" in
+            fedora) DISTRO="fedora" ;;
+            *)
+                if [ "$(rpm -E %fedora 2>/dev/null)" != "%fedora" ]; then DISTRO="fedora"; else DISTRO="rhel"; fi
+                ;;
+        esac
     elif command -v zypper >/dev/null 2>&1; then
         PKG="zypper"
+        case "$DISTRO_ID" in
+            *tumbleweed*|*slowroll*) DISTRO="tumbleweed" ;;
+            *)
+                if grep -qi "tumbleweed" /etc/os-release 2>/dev/null; then DISTRO="tumbleweed"; else DISTRO="leap"; fi
+                ;;
+        esac
     elif command -v pacman >/dev/null 2>&1; then
         PKG="pacman"
+        case "$DISTRO_ID" in
+            cachyos) DISTRO="cachyos" ;;
+            *)       DISTRO="arch" ;;
+        esac
     else
         echo "ERROR: Unsupported package manager." >&2
         exit 1
@@ -30,15 +61,25 @@ FLATPAK_PKGS=()
 case "$PKG" in
     apt)
         NATIVE_PKGS+=(ca-certificates gnupg curl wget git unzip tar xz-utils flatpak)
-        if grep -qiE '^ID(_LIKE)?=.*ubuntu' /etc/os-release; then
-            NATIVE_PKGS+=(software-properties-common)
-        fi
+        case "$DISTRO" in
+            ubuntu) NATIVE_PKGS+=(software-properties-common) ;;
+            debian|*) ;;
+        esac
         ;;
-    dnf|zypper)
+    dnf)
+        case "$DISTRO" in
+            fedora) NATIVE_PKGS+=(git curl wget unzip tar xz flatpak rpmfusion-nonfree-release-tainted) ;;
+            rhel|*) NATIVE_PKGS+=(git curl wget unzip tar xz flatpak epel-release) ;;
+        esac
+        ;;
+    zypper)
         NATIVE_PKGS+=(git curl wget unzip tar xz flatpak)
         ;;
     pacman)
-        NATIVE_PKGS+=(base-devel git curl wget unzip tar xz flatpak "paru-bin|paru")
+        case "${AUR_HELPER:-paru}" in
+            yay)    NATIVE_PKGS+=(base-devel git curl wget unzip tar xz flatpak "yay-bin|yay") ;;
+            paru|*) NATIVE_PKGS+=(base-devel git curl wget unzip tar xz flatpak "paru-bin|paru|yay-bin|yay") ;;
+        esac
         ;;
 esac
 
@@ -47,31 +88,63 @@ case "$GPU_CHOICE" in
     1)
         case "$PKG" in
             apt)
-                NATIVE_PKGS+=(
-                    "linux-headers-$(uname -r)|linux-headers-generic"
-                    dkms
-                    build-essential
-                    "nvidia-driver|nvidia-driver-*"
-                    "nvidia-smi|nvidia-utils-*"
-                    nvidia-persistenced
-                    nvidia-cuda-toolkit
-                    nvidia-vaapi-driver
-                )
+                case "$DISTRO" in
+                    ubuntu)
+                        NATIVE_PKGS+=(
+                            "linux-headers-$(uname -r)|linux-headers-generic"
+                            dkms
+                            build-essential
+                            "nvidia-driver|nvidia-driver-*"
+                            "nvidia-smi|nvidia-utils-*"
+                            nvidia-persistenced
+                            nvidia-cuda-toolkit
+                            nvidia-vaapi-driver
+                        )
+                        ;;
+                    debian|*)
+                        NATIVE_PKGS+=(
+                            "linux-headers-$(uname -r)|linux-headers-amd64"
+                            dkms
+                            build-essential
+                            "nvidia-kernel-open-dkms|nvidia-kernel-dkms|nvidia-driver"
+                            "nvidia-smi|nvidia-utils-*"
+                            nvidia-persistenced
+                            nvidia-cuda-toolkit
+                            nvidia-vaapi-driver
+                        )
+                        ;;
+                esac
                 ;;
             dnf)
-                NATIVE_PKGS+=(
-                    "kernel-devel-$(uname -r)|kernel-devel"
-                    kernel-headers
-                    akmod-nvidia
-                    xorg-x11-drv-nvidia-cuda
-                    nvidia-persistenced
-                )
+                case "$DISTRO" in
+                    fedora)
+                        NATIVE_PKGS+=(
+                            "kernel-devel-$(uname -r)|kernel-devel"
+                            kernel-headers
+                            "akmod-nvidia-open|akmod-nvidia"
+                            xorg-x11-drv-nvidia-cuda
+                            xorg-x11-drv-nvidia-power
+                            nvidia-settings
+                            nvidia-persistenced
+                            libva-nvidia-driver
+                        )
+                        ;;
+                    rhel|*)
+                        NATIVE_PKGS+=(
+                            "kernel-devel-$(uname -r)|kernel-devel"
+                            kernel-headers
+                            "akmod-nvidia-open|akmod-nvidia"
+                            xorg-x11-drv-nvidia-cuda
+                            nvidia-persistenced
+                        )
+                        ;;
+                esac
                 ;;
             zypper)
                 NATIVE_PKGS+=(
                     "kernel-default-devel|kernel-devel"
-                    "nvidia-driver-G06-kmp-meta|x11-video-nvidiaG06"
-                    "nvidia-userspace-meta-G06|nvidia-persistenced"
+                    "nvidia-open-driver-G06-signed-kmp-meta|nvidia-open-driver-G06-signed-kmp-default|nvidia-driver-G06-kmp-meta|x11-video-nvidiaG06"
+                    "nvidia-userspace-meta-G06|nvidia-compute-utils-G06|nvidia-persistenced"
                 )
                 ;;
             pacman)
@@ -99,15 +172,20 @@ case "$GPU_CHOICE" in
     2)
         case "$PKG" in
             apt)    NATIVE_PKGS+=(mesa-vulkan-drivers mesa-va-drivers libgl1-mesa-dri xserver-xorg-video-amdgpu) ;;
-            dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers "mesa-va-drivers-freeworld|mesa-va-drivers" "mesa-vdpau-drivers-freeworld|mesa-vdpau-drivers") ;;
-            zypper) NATIVE_PKGS+=(Mesa-dri libvulkan_radeon) ;;
+            dnf)
+                case "$DISTRO" in
+                    fedora) NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers "mesa-va-drivers-freeworld|mesa-va-drivers") ;;
+                    rhel|*) NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers) ;;
+                esac
+                ;;
+            zypper) NATIVE_PKGS+=(Mesa-dri "Mesa-libva|libvulkan_radeon" libvulkan_radeon) ;;
             pacman) NATIVE_PKGS+=(mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu) ;;
         esac
         ;;
     3)
         case "$PKG" in
-            apt)    NATIVE_PKGS+=(mesa-vulkan-drivers i965-va-driver libgl1-mesa-dri "intel-media-va-driver-non-free|intel-media-va-driver") ;;
-            dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers intel-media-driver libva-intel-driver) ;;
+            apt)    NATIVE_PKGS+=(mesa-vulkan-drivers libgl1-mesa-dri "intel-media-va-driver-non-free|intel-media-va-driver") ;;
+            dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers "intel-media-driver|libva-intel-driver") ;;
             zypper) NATIVE_PKGS+=(Mesa-dri libvulkan_intel "intel-media-driver|libva-intel-driver") ;;
             pacman) NATIVE_PKGS+=(mesa vulkan-intel intel-media-driver libva-intel-driver) ;;
         esac
@@ -127,11 +205,21 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
             )
             ;;
         dnf)
-            NATIVE_PKGS+=(
-                gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
-                nautilus file-roller gnome-text-editor gnome-calculator
-                gnome-software gnome-tweaks gnome-extensions-app
-            )
+            case "$DISTRO" in
+                fedora)
+                    NATIVE_PKGS+=(
+                        gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
+                        nautilus file-roller gnome-text-editor gnome-calculator
+                        gnome-software gnome-tweaks gnome-extensions-app
+                    )
+                    ;;
+                rhel|*)
+                    NATIVE_PKGS+=(
+                        gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
+                        nautilus gnome-text-editor gnome-calculator gnome-software gnome-tweaks
+                    )
+                    ;;
+            esac
             ;;
         zypper)
             NATIVE_PKGS+=(
@@ -178,12 +266,41 @@ if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
                 ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cron|cronie" tailscale
             )
             ;;
-        dnf|zypper)
-            NATIVE_PKGS+=(
-                flatseal "codium|vscodium" tuned snapper util-linux udisks2
-                udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2
-                ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
-            )
+        dnf)
+            case "$DISTRO" in
+                fedora)
+                    NATIVE_PKGS+=(
+                        flatseal "codium|vscodium" tuned snapper util-linux udisks2
+                        udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2
+                        ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
+                    )
+                    ;;
+                rhel|*)
+                    NATIVE_PKGS+=(
+                        "codium|vscodium" tuned util-linux udisks2
+                        udisks2-lvm2 lvm2
+                        ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
+                    )
+                    ;;
+            esac
+            ;;
+        zypper)
+            case "$DISTRO" in
+                tumbleweed)
+                    NATIVE_PKGS+=(
+                        flatseal "codium|vscodium" tuned snapper util-linux udisks2
+                        udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2
+                        ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
+                    )
+                    ;;
+                leap|*)
+                    NATIVE_PKGS+=(
+                        "codium|vscodium" tuned snapper util-linux udisks2
+                        btrfs-progs lvm2
+                        ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
+                    )
+                    ;;
+            esac
             ;;
         pacman)
             NATIVE_PKGS+=(
@@ -231,8 +348,7 @@ is_native_installed() {
     for candidate in "${candidates[@]}"; do
         case "$PKG" in
             apt)
-                # shellcheck disable=SC2086
-                if dpkg-query -W -f='${Status}\n' $candidate 2>/dev/null | grep -Fxq "install ok installed"; then
+                if dpkg-query -W -f='${Status}\n' "$candidate" 2>/dev/null | grep -Fxq "install ok installed"; then
                     return 0
                 fi
                 ;;
@@ -266,7 +382,7 @@ TOTAL_PKGS=0
 INSTALLED_PKGS=0
 MISSING_PKGS=()
 
-echo -e "\n--> Checking Native Packages ($PKG):"
+echo -e "\n--> Checking Native Packages ($PKG | $DISTRO):"
 for pkg in "${NATIVE_PKGS[@]}"; do
     [ -n "${SEEN_NATIVE[$pkg]:-}" ] && continue
     SEEN_NATIVE[$pkg]=1

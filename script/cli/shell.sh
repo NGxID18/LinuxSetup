@@ -1,28 +1,47 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing Zsh & plugins ($PKG)..."
+echo "==> Installing Zsh & plugins ($PKG | ${DISTRO:-$PKG})..."
 case "$PKG" in
     apt)
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-            zsh \
-            zsh-autosuggestions \
-            zsh-syntax-highlighting
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+                    zsh \
+                    zsh-autosuggestions \
+                    zsh-syntax-highlighting
+                ;;
+        esac
         ;;
     dnf)
-        sudo dnf install -y \
-            zsh \
-            zsh-autosuggestions \
-            zsh-syntax-highlighting
+        case "${DISTRO:-fedora}" in
+            fedora|rhel|*)
+                sudo dnf install -y \
+                    zsh \
+                    zsh-autosuggestions \
+                    zsh-syntax-highlighting
+                ;;
+        esac
         ;;
     zypper)
-        sudo zypper --non-interactive install -y zsh
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y zsh
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y \
+                    zsh-autosuggestions \
+                    zsh-syntax-highlighting 2>/dev/null || true
+                ;;
+        esac
         ;;
     pacman)
-        sudo pacman -S --needed --noconfirm \
-            zsh \
-            zsh-autosuggestions \
-            zsh-syntax-highlighting
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm \
+                    zsh \
+                    zsh-autosuggestions \
+                    zsh-syntax-highlighting
+                ;;
+        esac
         ;;
 esac
 

@@ -1,19 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing Fastfetch ($PKG)..."
+echo "==> Installing Fastfetch ($PKG | ${DISTRO:-$PKG})..."
 case "$PKG" in
     apt)
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y fastfetch
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y fastfetch
+                ;;
+        esac
         ;;
     dnf)
-        sudo dnf install -y fastfetch
+        case "${DISTRO:-fedora}" in
+            fedora|rhel|*)
+                sudo dnf install -y fastfetch
+                ;;
+        esac
         ;;
     zypper)
-        sudo zypper --non-interactive install -y fastfetch
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y fastfetch
+                ;;
+        esac
         ;;
     pacman)
-        sudo pacman -S --needed --noconfirm fastfetch
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm fastfetch
+                ;;
+        esac
         ;;
 esac
 

@@ -1,90 +1,134 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing minimal, non-bloated GNOME desktop ($PKG)..."
+echo "==> Installing minimal, non-bloated GNOME desktop ($PKG | ${DISTRO:-$PKG})..."
 case "$PKG" in
     apt)
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-            gdm3 \
-            gnome-shell \
-            gnome-session \
-            gnome-settings-daemon \
-            gnome-control-center \
-            gnome-keyring \
-            gnome-backgrounds \
-            xdg-desktop-portal-gnome \
-            xdg-user-dirs-gtk \
-            gvfs-backends \
-            gvfs-fuse \
-            network-manager-gnome \
-            nautilus \
-            file-roller \
-            gnome-text-editor \
-            gnome-calculator \
-            gnome-software \
-            gnome-tweaks \
-            gnome-shell-extension-prefs \
-            dconf-cli
-        sudo systemctl enable gdm3 2>/dev/null || sudo systemctl enable gdm 2>/dev/null || true
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+                    gdm3 \
+                    gnome-shell \
+                    gnome-session \
+                    gnome-settings-daemon \
+                    gnome-control-center \
+                    gnome-keyring \
+                    gnome-backgrounds \
+                    xdg-desktop-portal-gnome \
+                    xdg-user-dirs-gtk \
+                    gvfs-backends \
+                    gvfs-fuse \
+                    network-manager-gnome \
+                    nautilus \
+                    file-roller \
+                    gnome-text-editor \
+                    gnome-calculator \
+                    gnome-software \
+                    gnome-tweaks \
+                    gnome-shell-extension-prefs \
+                    dconf-cli
+                sudo systemctl enable gdm3 2>/dev/null || sudo systemctl enable gdm 2>/dev/null || true
+                ;;
+        esac
         ;;
 
     dnf)
-        sudo dnf install -y \
-            gdm \
-            gnome-shell \
-            gnome-session \
-            gnome-settings-daemon \
-            gnome-control-center \
-            gnome-keyring \
-            xdg-desktop-portal-gnome \
-            xdg-user-dirs-gtk \
-            nautilus \
-            file-roller \
-            gnome-text-editor \
-            gnome-calculator \
-            gnome-software \
-            gnome-tweaks \
-            gnome-extensions-app
+        case "${DISTRO:-fedora}" in
+            fedora)
+                sudo dnf install -y \
+                    gdm \
+                    gnome-shell \
+                    gnome-session \
+                    gnome-settings-daemon \
+                    gnome-control-center \
+                    gnome-keyring \
+                    xdg-desktop-portal-gnome \
+                    xdg-user-dirs-gtk \
+                    nautilus \
+                    file-roller \
+                    gnome-text-editor \
+                    gnome-calculator \
+                    gnome-software \
+                    gnome-tweaks \
+                    gnome-extensions-app
+                ;;
+
+            rhel|*)
+                sudo dnf install -y \
+                    gdm \
+                    gnome-shell \
+                    gnome-session \
+                    gnome-settings-daemon \
+                    gnome-control-center \
+                    gnome-keyring \
+                    xdg-desktop-portal-gnome \
+                    xdg-user-dirs-gtk \
+                    nautilus \
+                    gnome-text-editor \
+                    gnome-calculator \
+                    gnome-software \
+                    gnome-tweaks \
+                    || sudo dnf groupinstall -y "Workstation"
+                sudo dnf install -y file-roller gnome-extensions-app 2>/dev/null || true
+                ;;
+        esac
         sudo systemctl enable gdm
         ;;
 
     zypper)
-        sudo zypper --non-interactive install -y --no-recommends \
-            -t pattern gnome_basic \
-            gnome-control-center \
-            nautilus \
-            file-roller \
-            gnome-text-editor \
-            gnome-calculator \
-            gnome-tweaks \
-            gnome-extensions-app \
-            xdg-desktop-portal-gnome
-        sudo systemctl enable gdm
+        # Remove minimal-base conflict package if installed on minimal server setup
+        sudo zypper --non-interactive remove -y patterns-base-minimal_base-conflicts 2>/dev/null || true
+
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
+                    -t pattern gnome_basic 2>/dev/null \
+                    || sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
+                        patterns-gnome-gnome_basic 2>/dev/null || true
+
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
+                    gdm \
+                    gnome-shell \
+                    gnome-control-center \
+                    nautilus \
+                    file-roller \
+                    gnome-text-editor \
+                    gnome-calculator \
+                    gnome-tweaks \
+                    gnome-extensions-app \
+                    xdg-desktop-portal-gnome
+                ;;
+        esac
+        sudo systemctl enable gdm 2>/dev/null || sudo systemctl enable display-manager 2>/dev/null || true
         ;;
 
     pacman)
-        sudo pacman -S --needed --noconfirm \
-            gdm \
-            gnome-shell \
-            gnome-session \
-            gnome-settings-daemon \
-            gnome-control-center \
-            gnome-keyring \
-            gnome-backgrounds \
-            xdg-desktop-portal-gnome \
-            xdg-user-dirs-gtk \
-            gvfs \
-            gvfs-mtp \
-            gvfs-smb \
-            gvfs-nfs \
-            nautilus \
-            file-roller \
-            loupe \
-            gnome-text-editor \
-            gnome-calculator \
-            gnome-software \
-            gnome-tweaks \
-            extension-manager
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm \
+                    gdm \
+                    gnome-shell \
+                    gnome-session \
+                    gnome-settings-daemon \
+                    gnome-control-center \
+                    gnome-keyring \
+                    gnome-backgrounds \
+                    xdg-desktop-portal-gnome \
+                    xdg-user-dirs-gtk \
+                    gvfs \
+                    gvfs-mtp \
+                    gvfs-smb \
+                    gvfs-nfs \
+                    nautilus \
+                    file-roller \
+                    loupe \
+                    gnome-text-editor \
+                    gnome-calculator \
+                    gnome-software \
+                    gnome-tweaks \
+                    extension-manager
+                ;;
+        esac
         sudo systemctl enable gdm
         ;;
 esac

@@ -1,25 +1,24 @@
 #!/usr/bin/env bash
 
-if [ "${ASSUME_YES:-0}" -eq 1 ]; then
-    echo "=================================================="
-    echo "   LINUX PROVISIONING SETUP (NON-INTERACTIVE)     "
-    echo "=================================================="
-    echo "  Applying default provisioning settings (-y)..."
-    GPU_CHOICE=4
-    NVD_TUNE="N"
-    INSTALL_GNOME="Y"
-    INSTALL_COCKPIT="Y"
-    INSTALL_APPS="Y"
-    INSTALL_CLI="Y"
-    ZRAM_CHOICE=5
-    ZRAM_SIZE=""
-    export GPU_CHOICE NVD_TUNE INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS INSTALL_CLI ZRAM_CHOICE ZRAM_SIZE
-    return 0 2>/dev/null || exit 0
-fi
-
 echo "=================================================="
 echo "         LINUX PROVISIONING SETUP MENU            "
 echo "=================================================="
+
+AUR_HELPER="paru"
+if [ "${PKG:-}" = "pacman" ]; then
+    echo -e "\n[Arch] Select AUR Helper:"
+    echo "  1) Paru (default)"
+    echo "  2) Yay"
+    while true; do
+        read -rp "Choice [1-2, default 1]: " AUR_CHOICE || AUR_CHOICE="1"
+        AUR_CHOICE="${AUR_CHOICE:-1}"
+        case "$AUR_CHOICE" in
+            1) AUR_HELPER="paru"; break ;;
+            2) AUR_HELPER="yay"; break ;;
+            *) echo "  -> Invalid input. Please enter 1 or 2." ;;
+        esac
+    done
+fi
 
 echo -e "\n[1/6] Select GPU Driver:"
 echo "  1) NVIDIA"
@@ -76,4 +75,4 @@ while true; do
     esac
 done
 
-export GPU_CHOICE NVD_TUNE INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS INSTALL_CLI ZRAM_CHOICE ZRAM_SIZE
+export GPU_CHOICE NVD_TUNE AUR_HELPER INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS INSTALL_CLI ZRAM_CHOICE ZRAM_SIZE

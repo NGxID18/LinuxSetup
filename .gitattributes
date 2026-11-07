@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.zsh text eol=lf
+.zshrc text eol=lf
+*.conf text eol=lf
+*.jsonc text eol=lf
+*.md text eol=lf

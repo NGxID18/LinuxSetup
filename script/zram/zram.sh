@@ -3,12 +3,36 @@ set -euo pipefail
 
 ZRAM_SIZE="${ZRAM_SIZE:-32768}"
 
-echo "==> Configuring zRAM (${ZRAM_SIZE} MB zstd) on $PKG..."
+echo "==> Configuring zRAM (${ZRAM_SIZE} MB zstd) on $PKG (${DISTRO:-$PKG})..."
 case "$PKG" in
-    apt)    sudo DEBIAN_FRONTEND=noninteractive apt install -y systemd-zram-generator ;;
-    dnf)    sudo dnf install -y zram-generator ;;
-    zypper) sudo zypper --non-interactive install -y zram-generator ;;
-    pacman) sudo pacman -S --needed --noconfirm zram-generator ;;
+    apt)
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y systemd-zram-generator
+                ;;
+        esac
+        ;;
+    dnf)
+        case "${DISTRO:-fedora}" in
+            fedora|rhel|*)
+                sudo dnf install -y zram-generator
+                ;;
+        esac
+        ;;
+    zypper)
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y zram-generator
+                ;;
+        esac
+        ;;
+    pacman)
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm zram-generator
+                ;;
+        esac
+        ;;
 esac
 
 sudo tee /etc/systemd/zram-generator.conf > /dev/null <<EOF

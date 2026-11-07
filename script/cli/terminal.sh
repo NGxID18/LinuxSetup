@@ -1,19 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Installing Kitty & JetBrainsMono Nerd Font ($PKG)..."
+echo "==> Installing Kitty & JetBrainsMono Nerd Font ($PKG | ${DISTRO:-$PKG})..."
 case "$PKG" in
     apt)
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y kitty fontconfig
+        case "${DISTRO:-debian}" in
+            ubuntu|debian|*)
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y kitty fontconfig
+                ;;
+        esac
         ;;
     dnf)
-        sudo dnf install -y kitty fontconfig
+        case "${DISTRO:-fedora}" in
+            fedora|rhel|*)
+                sudo dnf install -y kitty fontconfig
+                ;;
+        esac
         ;;
     zypper)
-        sudo zypper --non-interactive install -y kitty fontconfig
+        case "${DISTRO:-tumbleweed}" in
+            tumbleweed|leap|*)
+                sudo zypper --non-interactive --gpg-auto-import-keys install -y kitty fontconfig
+                ;;
+        esac
         ;;
     pacman)
-        sudo pacman -S --needed --noconfirm kitty fontconfig ttf-jetbrains-mono-nerd
+        case "${DISTRO:-arch}" in
+            cachyos|arch|*)
+                sudo pacman -S --needed --noconfirm kitty fontconfig ttf-jetbrains-mono-nerd
+                ;;
+        esac
         ;;
 esac
 

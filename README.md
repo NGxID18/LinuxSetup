@@ -14,8 +14,6 @@ curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh 
 wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh | bash
 ```
 
-Pass `-y` for non-interactive / unattended installation.
-
 ## Tested Distributions
 
 - **openSUSE** (Leap 16, Tumbleweed) — `zypper`
