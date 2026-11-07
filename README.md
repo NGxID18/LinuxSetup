@@ -1,8 +1,8 @@
 # Universal Linux Provisioning
 
-Minimalist, interactive provisioning scripts and dotfiles for **Debian/Ubuntu (`apt`)**, **Fedora/RHEL (`dnf`)**, and **Arch Linux (`pacman`)**.
+Minimalist, automated provisioning scripts and dotfiles for modern Linux distributions.
 
-## Quick Install (One-Liner)
+## Install (One-Liner)
 
 ### Recommended (`curl`)
 ```bash
@@ -14,13 +14,16 @@ curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh 
 wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh | bash
 ```
 
-## Manual Usage
+Pass `-y` for non-interactive / unattended installation.
 
-```bash
-git clone https://github.com/NGxID18/LinuxSetup.git
-cd LinuxSetup
-./install.sh
-```
+## Tested Distributions
+
+- **openSUSE** (Leap 16, Tumbleweed) — `zypper`
+- **Fedora** (44, 45) — `dnf`
+- **Enterprise Linux** (RHEL 10, Rocky Linux 10, AlmaLinux 10) — `dnf`
+- **Debian** (13 Trixie) — `apt`
+- **Ubuntu** (24.04 LTS – 26.10) — `apt`
+- **Arch Linux** & **CachyOS** — `pacman`
 
 ## Structure
 

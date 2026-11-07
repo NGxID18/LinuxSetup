@@ -3,12 +3,23 @@ set -euo pipefail
 
 echo "==> Installing Kitty & JetBrainsMono Nerd Font ($PKG)..."
 case "$PKG" in
-    apt)    sudo DEBIAN_FRONTEND=noninteractive apt install -y kitty fontconfig ;;
-    dnf)    sudo dnf install -y kitty fontconfig ;;
-    pacman) sudo pacman -S --needed --noconfirm kitty fontconfig ttf-jetbrains-mono-nerd ;;
+    apt)
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y kitty fontconfig
+        ;;
+    dnf)
+        sudo dnf install -y kitty fontconfig
+        ;;
+    zypper)
+        sudo zypper --non-interactive install -y kitty fontconfig
+        ;;
+    pacman)
+        sudo pacman -S --needed --noconfirm kitty fontconfig ttf-jetbrains-mono-nerd
+        ;;
 esac
 
-if ! fc-list | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+# Ensure JetBrainsMono Nerd Font is installed across all distributions
+if ! fc-list 2>/dev/null | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+    echo "==> Downloading and installing JetBrainsMono Nerd Font..."
     FONT_DIR="/usr/local/share/fonts/JetBrainsMonoNerd"
     TMP_FONT="$(mktemp /tmp/jetbrainsmono.XXXXXX.tar.xz)"
     sudo mkdir -p "$FONT_DIR"

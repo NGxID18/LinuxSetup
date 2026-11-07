@@ -21,7 +21,7 @@ INSTALL_GNOME="${INSTALL_GNOME:-Y}"
 INSTALL_COCKPIT="${INSTALL_COCKPIT:-Y}"
 INSTALL_APPS="${INSTALL_APPS:-Y}"
 INSTALL_CLI="${INSTALL_CLI:-Y}"
-INSTALL_ZRAM="${INSTALL_ZRAM:-N}"
+ZRAM_CHOICE="${ZRAM_CHOICE:-5}"
 
 NATIVE_PKGS=()
 FLATPAK_PKGS=()
@@ -34,7 +34,7 @@ case "$PKG" in
             NATIVE_PKGS+=(software-properties-common)
         fi
         ;;
-    dnf)
+    dnf|zypper)
         NATIVE_PKGS+=(git curl wget unzip tar xz flatpak)
         ;;
     pacman)
@@ -48,7 +48,7 @@ case "$GPU_CHOICE" in
         case "$PKG" in
             apt)
                 NATIVE_PKGS+=(
-                    "linux-headers-$(uname -r)"
+                    "linux-headers-$(uname -r)|linux-headers-generic"
                     dkms
                     build-essential
                     "nvidia-driver|nvidia-driver-*"
@@ -60,9 +60,18 @@ case "$GPU_CHOICE" in
                 ;;
             dnf)
                 NATIVE_PKGS+=(
+                    "kernel-devel-$(uname -r)|kernel-devel"
+                    kernel-headers
                     akmod-nvidia
                     xorg-x11-drv-nvidia-cuda
                     nvidia-persistenced
+                )
+                ;;
+            zypper)
+                NATIVE_PKGS+=(
+                    "kernel-default-devel|kernel-devel"
+                    "nvidia-driver-G06-kmp-meta|x11-video-nvidiaG06"
+                    "nvidia-userspace-meta-G06|nvidia-persistenced"
                 )
                 ;;
             pacman)
@@ -76,7 +85,7 @@ case "$GPU_CHOICE" in
                 done
                 [ "$FOUND_HDR" -eq 0 ] && NATIVE_PKGS+=(linux-headers)
                 NATIVE_PKGS+=(
-                    nvidia-open-dkms
+                    "nvidia-open-dkms|nvidia-dkms|nvidia"
                     nvidia-utils
                     opencl-nvidia
                     libva-nvidia-driver
@@ -91,6 +100,7 @@ case "$GPU_CHOICE" in
         case "$PKG" in
             apt)    NATIVE_PKGS+=(mesa-vulkan-drivers mesa-va-drivers libgl1-mesa-dri xserver-xorg-video-amdgpu) ;;
             dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers "mesa-va-drivers-freeworld|mesa-va-drivers" "mesa-vdpau-drivers-freeworld|mesa-vdpau-drivers") ;;
+            zypper) NATIVE_PKGS+=(Mesa-dri libvulkan_radeon) ;;
             pacman) NATIVE_PKGS+=(mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu) ;;
         esac
         ;;
@@ -98,6 +108,7 @@ case "$GPU_CHOICE" in
         case "$PKG" in
             apt)    NATIVE_PKGS+=(mesa-vulkan-drivers i965-va-driver libgl1-mesa-dri "intel-media-va-driver-non-free|intel-media-va-driver") ;;
             dnf)    NATIVE_PKGS+=(mesa-dri-drivers mesa-vulkan-drivers intel-media-driver libva-intel-driver) ;;
+            zypper) NATIVE_PKGS+=(Mesa-dri libvulkan_intel "intel-media-driver|libva-intel-driver") ;;
             pacman) NATIVE_PKGS+=(mesa vulkan-intel intel-media-driver libva-intel-driver) ;;
         esac
         ;;
@@ -108,17 +119,24 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
     case "$PKG" in
         apt)
             NATIVE_PKGS+=(
-                gdm3 gnome-shell gnome-session gnome-settings-daemon gnome-control-center
+                "gdm3|gdm" gnome-shell gnome-session gnome-settings-daemon gnome-control-center
                 gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk
                 gvfs-backends gvfs-fuse network-manager-gnome nautilus file-roller
-                gnome-text-editor gnome-calculator gnome-software gnome-software-plugin-flatpak
+                gnome-text-editor gnome-calculator gnome-software
                 gnome-tweaks gnome-shell-extension-prefs dconf-cli
             )
             ;;
         dnf)
             NATIVE_PKGS+=(
-                gdm gnome-shell nautilus gnome-text-editor gnome-calculator
+                gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
+                nautilus file-roller gnome-text-editor gnome-calculator
                 gnome-software gnome-tweaks gnome-extensions-app
+            )
+            ;;
+        zypper)
+            NATIVE_PKGS+=(
+                gdm gnome-shell gnome-control-center nautilus file-roller
+                gnome-text-editor gnome-calculator gnome-tweaks gnome-extensions-app
             )
             ;;
         pacman)
@@ -155,21 +173,23 @@ if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
     case "$PKG" in
         apt)
             NATIVE_PKGS+=(
-                flatseal codium tuned snapper btrfs-progs
-                lvm2 ntfs-3g exfatprogs xfsprogs cron tailscale
+                flatseal "codium|vscodium" tuned snapper util-linux udisks2
+                udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2
+                ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cron|cronie" tailscale
             )
             ;;
-        dnf)
+        dnf|zypper)
             NATIVE_PKGS+=(
-                flatseal codium tuned snapper btrfs-progs
-                lvm2 ntfs-3g exfatprogs xfsprogs cronie tailscale
+                flatseal "codium|vscodium" tuned snapper util-linux udisks2
+                udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2
+                ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs "cronie|cron" tailscale
             )
             ;;
         pacman)
             NATIVE_PKGS+=(
-                flatseal mission-center tuned snapper tailscale cronie
+                flatseal "vscodium-bin|codium|vscodium" tuned snapper tailscale cronie
                 util-linux udisks2 lvm2 udisks2-lvm2 btrfs-progs udisks2-btrfs
-                ntfs-3g xfsprogs exfatprogs vscodium-bin
+                ntfs-3g xfsprogs exfatprogs dosfstools e2fsprogs
             )
             ;;
     esac
@@ -181,27 +201,25 @@ if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
         org.prismlauncher.PrismLauncher
         com.rtosta.zapzap
         com.obsproject.Studio
-        org.freedesktop.Platform.VulkanLayer.OBSVkCapture
     )
 fi
 
 # 6. zRAM packages
-if [[ "$INSTALL_ZRAM" =~ ^[Yy]$ ]]; then
+if [ "$ZRAM_CHOICE" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
     case "$PKG" in
         apt)    NATIVE_PKGS+=(systemd-zram-generator) ;;
-        dnf)    NATIVE_PKGS+=(zram-generator) ;;
-        pacman) NATIVE_PKGS+=(zram-generator) ;;
+        dnf|zypper|pacman) NATIVE_PKGS+=(zram-generator) ;;
     esac
 fi
 
 # 7. CLI packages
 if [[ "$INSTALL_CLI" =~ ^[Yy]$ ]]; then
     case "$PKG" in
-        apt|dnf)
-            NATIVE_PKGS+=(fastfetch kitty fontconfig zsh zsh-autosuggestions zsh-syntax-highlighting)
+        apt|dnf|zypper)
+            NATIVE_PKGS+=(fastfetch kitty fontconfig zsh)
             ;;
         pacman)
-            NATIVE_PKGS+=(fastfetch kitty fontconfig ttf-jetbrains-mono-nerd zsh zsh-autosuggestions zsh-syntax-highlighting)
+            NATIVE_PKGS+=(fastfetch kitty fontconfig ttf-jetbrains-mono-nerd zsh)
             ;;
     esac
 fi
@@ -297,4 +315,3 @@ else
     done
 fi
 echo "=================================================="
-

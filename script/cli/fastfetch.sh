@@ -4,17 +4,13 @@ set -euo pipefail
 echo "==> Installing Fastfetch ($PKG)..."
 case "$PKG" in
     apt)
-        if ! sudo DEBIAN_FRONTEND=noninteractive apt install -y fastfetch 2>/dev/null; then
-            ARCH="$(dpkg --print-architecture)"
-            [ "$ARCH" = "arm64" ] && ARCH="aarch64"
-            TMP_DEB="$(mktemp /tmp/fastfetch.XXXXXX.deb)"
-            curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${ARCH}.deb" -o "$TMP_DEB"
-            sudo DEBIAN_FRONTEND=noninteractive apt install -y "$TMP_DEB"
-            rm -f "$TMP_DEB"
-        fi
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y fastfetch
         ;;
     dnf)
         sudo dnf install -y fastfetch
+        ;;
+    zypper)
+        sudo zypper --non-interactive install -y fastfetch
         ;;
     pacman)
         sudo pacman -S --needed --noconfirm fastfetch
