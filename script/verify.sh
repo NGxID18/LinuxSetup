@@ -202,6 +202,7 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
                 gvfs-backends gvfs-fuse network-manager-gnome nautilus file-roller
                 gnome-text-editor gnome-calculator gnome-software
                 gnome-tweaks gnome-shell-extension-prefs dconf-cli
+                libglib2.0-bin gir1.2-gtop-2.0 lm-sensors
             )
             ;;
         dnf)
@@ -211,12 +212,14 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
                         gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
                         nautilus file-roller gnome-text-editor gnome-calculator
                         gnome-software gnome-tweaks gnome-extensions-app
+                        libgtop2 lm_sensors
                     )
                     ;;
                 rhel|*)
                     NATIVE_PKGS+=(
                         gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center
                         nautilus gnome-text-editor gnome-calculator gnome-software gnome-tweaks
+                        libgtop2 lm_sensors
                     )
                     ;;
             esac
@@ -225,6 +228,7 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
             NATIVE_PKGS+=(
                 gdm gnome-shell gnome-control-center nautilus file-roller
                 gnome-text-editor gnome-calculator gnome-tweaks gnome-extensions-app
+                glib2-tools "libgtop-2_0-0|typelib-1_0-GTop-2_0"
             )
             ;;
         pacman)
@@ -233,6 +237,7 @@ if [[ "$INSTALL_GNOME" =~ ^[Yy]$ ]]; then
                 gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk
                 gvfs gvfs-mtp gvfs-smb gvfs-nfs nautilus file-roller loupe
                 gnome-text-editor gnome-calculator gnome-software gnome-tweaks extension-manager
+                libgtop lm_sensors
             )
             ;;
     esac

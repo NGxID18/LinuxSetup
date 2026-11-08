@@ -26,7 +26,10 @@ case "$PKG" in
                     gnome-software \
                     gnome-tweaks \
                     gnome-shell-extension-prefs \
-                    dconf-cli
+                    dconf-cli \
+                    libglib2.0-bin \
+                    gir1.2-gtop-2.0 \
+                    lm-sensors
                 sudo systemctl enable gdm3 2>/dev/null || sudo systemctl enable gdm 2>/dev/null || true
                 ;;
         esac
@@ -50,7 +53,9 @@ case "$PKG" in
                     gnome-calculator \
                     gnome-software \
                     gnome-tweaks \
-                    gnome-extensions-app
+                    gnome-extensions-app \
+                    libgtop2 \
+                    lm_sensors
                 ;;
 
             rhel|*)
@@ -68,6 +73,8 @@ case "$PKG" in
                     gnome-calculator \
                     gnome-software \
                     gnome-tweaks \
+                    libgtop2 \
+                    lm_sensors \
                     || sudo dnf groupinstall -y "Workstation"
                 sudo dnf install -y file-roller gnome-extensions-app 2>/dev/null || true
                 ;;
@@ -96,7 +103,12 @@ case "$PKG" in
                     gnome-calculator \
                     gnome-tweaks \
                     gnome-extensions-app \
-                    xdg-desktop-portal-gnome
+                    xdg-desktop-portal-gnome \
+                    glib2-tools \
+                    libgtop-2_0-0 \
+                    sensors 2>/dev/null \
+                    || sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
+                        gdm gnome-shell gnome-control-center nautilus file-roller gnome-text-editor gnome-calculator gnome-tweaks gnome-extensions-app xdg-desktop-portal-gnome glib2-tools
                 ;;
         esac
         sudo systemctl enable gdm 2>/dev/null || sudo systemctl enable display-manager 2>/dev/null || true
@@ -126,7 +138,9 @@ case "$PKG" in
                     gnome-calculator \
                     gnome-software \
                     gnome-tweaks \
-                    extension-manager
+                    extension-manager \
+                    libgtop \
+                    lm_sensors
                 ;;
         esac
         sudo systemctl enable gdm
@@ -174,29 +188,48 @@ EXTENSIONS=(
 )
 
 SYS_EXT_DIR="/usr/share/gnome-shell/extensions"
-sudo mkdir -p "$SYS_EXT_DIR"
+sudo mkdir -p "$SYS_EXT_DIR" /usr/share/glib-2.0/schemas
 
-if [ -n "$SHELL_VER" ]; then
-    for uuid in "${EXTENSIONS[@]}"; do
+for uuid in "${EXTENSIONS[@]}"; do
+    DL_PATH=""
+    if [ -n "$SHELL_VER" ]; then
         INFO_URL="https://extensions.gnome.org/extension-info/?uuid=${uuid}&shell_version=${SHELL_VER}"
         DL_PATH="$(curl -fsSL "$INFO_URL" 2>/dev/null | sed -n 's/.*"download_url":[[:space:]]*"\([^"]*\)".*/\1/p' || true)"
+    fi
 
-        if [ -n "$DL_PATH" ]; then
-            echo "  -> Downloading global extension: $uuid..."
-            TMP_ZIP="$(mktemp "/tmp/${uuid}.XXXXXX.zip")"
-            if curl -fsSL "https://extensions.gnome.org${DL_PATH}" -o "$TMP_ZIP"; then
-                TARGET_DIR="$SYS_EXT_DIR/$uuid"
-                sudo rm -rf "$TARGET_DIR"
-                sudo mkdir -p "$TARGET_DIR"
-                sudo unzip -qo "$TMP_ZIP" -d "$TARGET_DIR"
-                sudo chmod 755 "$TARGET_DIR"
-                sudo find "$TARGET_DIR" -type d -exec chmod 755 {} +
-                sudo find "$TARGET_DIR" -type f -exec chmod 644 {} +
+    # Fallback to latest available release if version-specific query returns empty
+    if [ -z "$DL_PATH" ]; then
+        INFO_URL="https://extensions.gnome.org/extension-info/?uuid=${uuid}"
+        DL_PATH="$(curl -fsSL "$INFO_URL" 2>/dev/null | sed -n 's/.*"download_url":[[:space:]]*"\([^"]*\)".*/\1/p' || true)"
+    fi
+
+    if [ -n "$DL_PATH" ]; then
+        echo "  -> Downloading global extension: $uuid..."
+        TMP_ZIP="$(mktemp "/tmp/${uuid}.XXXXXX.zip")"
+        if curl -fsSL "https://extensions.gnome.org${DL_PATH}" -o "$TMP_ZIP"; then
+            TARGET_DIR="$SYS_EXT_DIR/$uuid"
+            sudo rm -rf "$TARGET_DIR"
+            sudo mkdir -p "$TARGET_DIR"
+            sudo unzip -qo "$TMP_ZIP" -d "$TARGET_DIR"
+
+            # Compile GSettings schemas to prevent GLib.FileError (gschemas.compiled missing)
+            if [ -d "$TARGET_DIR/schemas" ]; then
+                sudo glib-compile-schemas "$TARGET_DIR/schemas" 2>/dev/null || true
+                sudo cp "$TARGET_DIR"/schemas/*.gschema.xml /usr/share/glib-2.0/schemas/ 2>/dev/null || true
             fi
-            rm -f "$TMP_ZIP"
+
+            sudo chmod 755 "$TARGET_DIR"
+            sudo find "$TARGET_DIR" -type d -exec chmod 755 {} +
+            sudo find "$TARGET_DIR" -type f -exec chmod 644 {} +
         fi
-    done
-fi
+        rm -f "$TMP_ZIP"
+    else
+        echo "  -> [WARNING] Failed to resolve download URL for extension: $uuid"
+    fi
+done
+
+# Compile global schemas to ensure all extensions settings are registered
+sudo glib-compile-schemas /usr/share/glib-2.0/schemas/ 2>/dev/null || true
 
 sudo mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
 if [ ! -f /etc/dconf/profile/user ]; then
@@ -209,6 +242,7 @@ fi
 sudo tee /etc/dconf/db/local.d/00-extensions > /dev/null <<'EOF'
 [org/gnome/shell]
 disable-user-extensions=false
+disable-extension-version-validation=true
 enabled-extensions=['blur-my-shell@aunetx', 'Vitals@CoreCoding.com', 'appindicatorsupport@rgcjonas.gmail.com']
 EOF
 
