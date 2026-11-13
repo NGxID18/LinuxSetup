@@ -1,6 +1,6 @@
 # Universal Linux Provisioning
 
-Minimalist, automated provisioning scripts and dotfiles for modern Linux distributions.
+Minimalist, interactive `archinstall`-inspired provisioning scripts and dotfiles for modern Linux distributions.
 
 ## Install (One-Liner)
 
@@ -14,14 +14,21 @@ curl -fsSL https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh 
 wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh | bash
 ```
 
-## Tested Distributions
+## Supported Distributions
 
-- **openSUSE** (Leap 16, Tumbleweed) — `zypper`
-- **Fedora** (44, 45) — `dnf`
-- **Enterprise Linux** (RHEL 10, Rocky Linux 10, AlmaLinux 10) — `dnf`
-- **Debian** (13 Trixie) — `apt`
-- **Ubuntu** (24.04 LTS – 26.10) — `apt`
+- **openSUSE** (Leap, Tumbleweed) — `zypper`
+- **Fedora** — `dnf`
+- **Enterprise Linux** (AlmaLinux, RHEL, Rocky Linux, CentOS) — `dnf`
+- **Debian** — `apt`
+- **Ubuntu** — `apt`
 - **Arch Linux** & **CachyOS** — `pacman`
+
+## Interactive Workflow
+
+1. **Repository Menu**: Toggle official, third-party, community, AUR helper, and Flathub repositories per distro.
+2. **GPU Driver Menu**: Automatically adapts available driver options (e.g., `akmod-nvidia-open` vs `akmod-nvidia`) to the selected repositories.
+3. **Applications Menu**: Displays repository-gated native presets, universal Flathub presets, and live package search (`/ <query>`, `sf <query>`).
+4. **System & CLI Modules**: Optional minimal GNOME desktop, Cockpit Web Console, CLI stack (Fastfetch, Kitty, Zsh), zRAM swap, and installation verification.
 
 ## Structure
 
@@ -35,26 +42,23 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
 │   └── shell/.zshrc
 └── script/
     ├── setup.sh
-    ├── repository.sh
     ├── verify.sh
-    ├── DE/
-    │   └── gnome/
-    │       └── gnome.sh
-    ├── apps/
-    │   ├── main.sh
-    │   └── cockpit.sh
-    ├── zram/
-    │   └── zram.sh
-    ├── driver/
-    │   ├── nvidia/
-    │   │   ├── nvidia.sh
-    │   │   └── 5060tune.sh
-    │   ├── amd/
-    │   │   └── amd.sh
-    │   └── intel/
-    │       └── intel.sh
-    └── cli/
-        ├── fastfetch.sh
-        ├── terminal.sh
-        └── shell.sh
+    ├── lib/
+    │   └── tui.sh
+    ├── common/
+    │   ├── flatpak.sh
+    │   ├── gnome-config.sh
+    │   ├── cli-config.sh
+    │   ├── cockpit-config.sh
+    │   ├── zram-config.sh
+    │   └── 5060tune.sh
+    └── distro/
+        ├── almalinux/{repo.sh,driver.sh,apps.sh}
+        ├── arch/{repo.sh,driver.sh,apps.sh}
+        ├── cachyos/{repo.sh,driver.sh,apps.sh}
+        ├── debian/{repo.sh,driver.sh,apps.sh}
+        ├── fedora/{repo.sh,driver.sh,apps.sh}
+        ├── leap/{repo.sh,driver.sh,apps.sh}
+        ├── tumbleweed/{repo.sh,driver.sh,apps.sh}
+        └── ubuntu/{repo.sh,driver.sh,apps.sh}
 ```

@@ -33,7 +33,7 @@ if [ -z "$ROOT_DIR" ] || [ ! -f "$ROOT_DIR/script/setup.sh" ]; then
         exit 1
     fi
 
-    chmod -R +x "$CLEANUP_DIR/install.sh" "$CLEANUP_DIR/script"
+    chmod -R +x "$CLEANUP_DIR/install.sh" "$CLEANUP_DIR/script" 2>/dev/null || true
     "$CLEANUP_DIR/install.sh" "$@" </dev/tty
     exit $?
 fi
@@ -42,73 +42,12 @@ if [ ! -t 0 ] && [ -e /dev/tty ]; then
     exec </dev/tty
 fi
 
-chmod -R +x "$ROOT_DIR/script"
+chmod -R +x "$ROOT_DIR/script" 2>/dev/null || true
+export ROOT_DIR
 
-# Detect OS distribution and package manager (Single Source of Truth)
-DISTRO_ID="unknown"
-DISTRO_LIKE=""
-DISTRO_VER=""
-if [ -f /etc/os-release ]; then
-    # shellcheck disable=SC1091
-    . /etc/os-release
-    DISTRO_ID="${ID:-unknown}"
-    DISTRO_LIKE="${ID_LIKE:-}"
-    DISTRO_VER="${VERSION_ID:-}"
-fi
+source "$ROOT_DIR/script/lib/tui.sh"
+detect_linux_env
 
-if command -v apt >/dev/null 2>&1; then
-    PKG="apt"
-    case "$DISTRO_ID" in
-        ubuntu|linuxmint|pop) DISTRO="ubuntu" ;;
-        debian)               DISTRO="debian" ;;
-        *)
-            if [[ "$DISTRO_LIKE" == *ubuntu* ]]; then
-                DISTRO="ubuntu"
-            else
-                DISTRO="debian"
-            fi
-            ;;
-    esac
-elif command -v dnf >/dev/null 2>&1; then
-    PKG="dnf"
-    case "$DISTRO_ID" in
-        fedora)                         DISTRO="fedora" ;;
-        rhel|rocky|almalinux|centos|ol) DISTRO="rhel" ;;
-        *)
-            if [ "$(rpm -E %fedora 2>/dev/null)" != "%fedora" ]; then
-                DISTRO="fedora"
-            else
-                DISTRO="rhel"
-            fi
-            ;;
-    esac
-elif command -v zypper >/dev/null 2>&1; then
-    PKG="zypper"
-    case "$DISTRO_ID" in
-        *tumbleweed*|*slowroll*) DISTRO="tumbleweed" ;;
-        *leap*|*sles*)           DISTRO="leap" ;;
-        *)
-            if grep -qi "tumbleweed" /etc/os-release 2>/dev/null; then
-                DISTRO="tumbleweed"
-            else
-                DISTRO="leap"
-            fi
-            ;;
-    esac
-elif command -v pacman >/dev/null 2>&1; then
-    PKG="pacman"
-    case "$DISTRO_ID" in
-        cachyos) DISTRO="cachyos" ;;
-        arch|*)  DISTRO="arch" ;;
-    esac
-else
-    echo "ERROR: Unsupported package manager (requires apt, dnf, zypper, or pacman)." >&2
-    exit 1
-fi
-
-export ROOT_DIR PKG DISTRO DISTRO_ID DISTRO_VER
-
-# Acquire sudo credential and keep alive in background
 echo "==> Requesting administrator privileges..."
 sudo -v
 while true; do
@@ -123,43 +62,27 @@ source "$ROOT_DIR/script/setup.sh"
 
 echo -e "\n==> Starting installation (Package Manager: $PKG | Distro: $DISTRO ${DISTRO_VER})..."
 
-"$ROOT_DIR/script/repository.sh"
-
-case "${GPU_CHOICE:-4}" in
-    1)
-        "$ROOT_DIR/script/driver/nvidia/nvidia.sh"
-        if [[ "${NVD_TUNE:-N}" =~ ^[Yy]$ ]]; then
-            "$ROOT_DIR/script/driver/nvidia/5060tune.sh"
-        fi
-        ;;
-    2)
-        "$ROOT_DIR/script/driver/amd/amd.sh"
-        ;;
-    3)
-        "$ROOT_DIR/script/driver/intel/intel.sh"
-        ;;
-esac
+"$DISTRO_DIR/repo.sh"
+"$DISTRO_DIR/driver.sh"
 
 if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-    "$ROOT_DIR/script/DE/gnome/gnome.sh"
+    "$DISTRO_DIR/apps.sh" --gnome
 fi
 
 if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-    "$ROOT_DIR/script/apps/cockpit.sh"
+    "$DISTRO_DIR/apps.sh" --cockpit
 fi
 
 if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
-    "$ROOT_DIR/script/apps/main.sh"
+    "$DISTRO_DIR/apps.sh"
 fi
 
 if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-    "$ROOT_DIR/script/zram/zram.sh"
+    "$DISTRO_DIR/apps.sh" --zram
 fi
 
 if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-    "$ROOT_DIR/script/cli/fastfetch.sh"
-    "$ROOT_DIR/script/cli/terminal.sh"
-    "$ROOT_DIR/script/cli/shell.sh"
+    "$DISTRO_DIR/apps.sh" --cli
 fi
 
 "$ROOT_DIR/script/verify.sh"
