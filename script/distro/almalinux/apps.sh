@@ -5,14 +5,6 @@ source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
-    local nv_default=0
-    if [ "${GPU_CHOICE:-4}" = "1" ]; then
-        nv_default=1
-    fi
-
-    if repo_enabled "rpmfusion-nonfree" && repo_enabled "epel"; then
-        register_app "nvidia-open" "rpmfusion-nonfree" "NVIDIA Open Kernel Module driver (akmod-nvidia)" "$nv_default"
-    fi
     if repo_enabled "rpmfusion-free" && repo_enabled "epel"; then
         register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & FFmpeg (ffmpeg)" 1
     fi
@@ -64,12 +56,6 @@ distro_apply_apps() {
     if app_enabled "cron";         then native_pkgs+=(cronie); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
     if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
-    if app_enabled "nvidia-open"; then
-        if [ "${GPU_CHOICE:-4}" != "1" ]; then
-            native_pkgs+=(kernel-devel kernel-headers kmodtool akmods)
-        fi
-        native_pkgs+=(akmod-nvidia)
-    fi
     if app_enabled "flatseal"; then optional_pkgs+=(flatseal); fi
     if app_enabled "snapper";  then optional_pkgs+=(snapper); fi
 
@@ -112,7 +98,6 @@ distro_verify_apps() {
             fi
         fi
         if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if app_enabled "nvidia-open";  then register_expected_native "akmod-nvidia|akmod-nvidia-open"; fi
 
         if app_enabled "fs-tools"; then
             register_expected_native util-linux udisks2 udisks2-lvm2 lvm2 xfsprogs dosfstools e2fsprogs

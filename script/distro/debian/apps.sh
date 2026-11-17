@@ -5,14 +5,6 @@ source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
-    local nv_default=0
-    if [ "${GPU_CHOICE:-4}" = "1" ]; then
-        nv_default=1
-    fi
-
-    if repo_enabled "non-free" && repo_enabled "non-free-firmware"; then
-        register_app "nvidia-open" "non-free" "NVIDIA Open Kernel DKMS driver (nvidia-kernel-open-dkms)" "$nv_default"
-    fi
     if repo_enabled "non-free"; then
         register_app "codecs-extra" "non-free" "Multimedia codecs & FFmpeg (ffmpeg)" 1
     fi
@@ -59,14 +51,6 @@ distro_apply_apps() {
     if app_enabled "cron";         then native_pkgs+=(cron); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
     if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
-    if app_enabled "nvidia-open"; then
-        local deb_arch
-        deb_arch="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
-        if [ "${GPU_CHOICE:-4}" != "1" ]; then
-            native_pkgs+=("linux-headers-${deb_arch}" dkms build-essential)
-        fi
-        native_pkgs+=(nvidia-kernel-open-dkms nvidia-driver)
-    fi
     if app_enabled "fs-tools"; then
         native_pkgs+=(util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 ntfs-3g xfsprogs exfatprogs dosfstools e2fsprogs)
     fi
@@ -96,9 +80,6 @@ distro_verify_apps() {
         if app_enabled "cron";         then register_expected_native "cron|cronie"; fi
         if app_enabled "tailscale" && repo_enabled "tailscale"; then register_expected_native tailscale; fi
         if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if app_enabled "nvidia-open"; then
-            register_expected_native "nvidia-kernel-open-dkms|nvidia-driver"
-        fi
         if app_enabled "fs-tools"; then
             register_expected_native \
                 util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 \

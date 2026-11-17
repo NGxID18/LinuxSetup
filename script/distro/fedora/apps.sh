@@ -5,16 +5,8 @@ source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
-    local nv_default=0
-    if [ "${GPU_CHOICE:-4}" = "1" ]; then
-        nv_default=1
-    fi
-
-    if repo_enabled "rpmfusion-nonfree"; then
-        register_app "nvidia-open" "rpmfusion-nonfree" "NVIDIA Open Kernel Module driver (akmod-nvidia)" "$nv_default"
-    fi
     if repo_enabled "rpmfusion-free"; then
-        register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & Freeworld VA-API (ffmpeg, mesa-va-drivers-freeworld)" 1
+        register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & FFmpeg (ffmpeg)" 1
     fi
     if repo_enabled "rpmfusion-free-tainted"; then
         register_app "libdvdcss" "rpmfusion-free-tainted" "Encrypted DVD playback library (libdvdcss)" 0
@@ -59,14 +51,8 @@ distro_apply_apps() {
     if app_enabled "flatseal";     then native_pkgs+=(flatseal); fi
     if app_enabled "snapper";      then native_pkgs+=(snapper); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
-    if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg mesa-va-drivers-freeworld); fi
+    if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
     if app_enabled "libdvdcss";    then native_pkgs+=(libdvdcss); fi
-    if app_enabled "nvidia-open"; then
-        if [ "${GPU_CHOICE:-4}" != "1" ]; then
-            native_pkgs+=(kernel-devel kernel-headers kmodtool akmods)
-        fi
-        native_pkgs+=(akmod-nvidia)
-    fi
     if app_enabled "fs-tools"; then
         native_pkgs+=(util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs)
     fi
@@ -97,7 +83,6 @@ distro_verify_apps() {
         if app_enabled "tailscale";    then register_expected_native tailscale; fi
         if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
         if app_enabled "libdvdcss";    then register_expected_native libdvdcss; fi
-        if app_enabled "nvidia-open";  then register_expected_native "akmod-nvidia|akmod-nvidia-open"; fi
 
         if app_enabled "fs-tools"; then
             register_expected_native \

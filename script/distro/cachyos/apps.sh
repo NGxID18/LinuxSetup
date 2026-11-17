@@ -5,12 +5,6 @@ source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
-    local nv_default=0
-    if [ "${GPU_CHOICE:-4}" = "1" ]; then
-        nv_default=1
-    fi
-
-    register_app "nvidia-open"  "extra" "NVIDIA Open Kernel DKMS driver (nvidia-open-dkms)" "$nv_default"
     register_app "codecs-extra" "extra" "Multimedia codecs & FFmpeg (ffmpeg)" 1
 
     if repo_enabled "aur-paru" || repo_enabled "aur-yay" || repo_enabled "chaotic-aur"; then
@@ -50,17 +44,6 @@ distro_apply_apps() {
     if app_enabled "cron";         then native_pkgs+=(cronie); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
     if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
-    if app_enabled "nvidia-open"; then
-        if [ "${GPU_CHOICE:-4}" != "1" ]; then
-            native_pkgs+=(dkms)
-            if pacman -Si linux-cachyos-headers >/dev/null 2>&1; then
-                native_pkgs+=(linux-cachyos-headers)
-            else
-                native_pkgs+=(linux-headers)
-            fi
-        fi
-        native_pkgs+=(nvidia-open-dkms nvidia-utils)
-    fi
     if app_enabled "fs-tools"; then
         native_pkgs+=(util-linux udisks2 lvm2 udisks2-lvm2 btrfs-progs udisks2-btrfs ntfs-3g xfsprogs exfatprogs dosfstools e2fsprogs)
     fi
@@ -117,7 +100,6 @@ distro_verify_apps() {
         if app_enabled "tailscale";    then register_expected_native tailscale; fi
         if app_enabled "cron";         then register_expected_native cronie; fi
         if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if app_enabled "nvidia-open";  then register_expected_native nvidia-open-dkms; fi
 
         if app_enabled "fs-tools"; then
             register_expected_native \

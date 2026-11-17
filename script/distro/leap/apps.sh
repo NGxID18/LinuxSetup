@@ -5,14 +5,6 @@ source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
-    local nv_default=0
-    if [ "${GPU_CHOICE:-4}" = "1" ]; then
-        nv_default=1
-    fi
-
-    if repo_enabled "nvidia"; then
-        register_app "nvidia-open" "nvidia" "NVIDIA Open Kernel G06 signed driver" "$nv_default"
-    fi
     if repo_enabled "packman-full" || repo_enabled "packman-essentials"; then
         register_app "codecs-extra" "packman" "Restricted multimedia codecs & FFmpeg (ffmpeg)" 1
     fi
@@ -60,12 +52,6 @@ distro_apply_apps() {
     if app_enabled "snapper";      then native_pkgs+=(snapper); fi
     if app_enabled "cron";         then native_pkgs+=(cronie); fi
     if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
-    if app_enabled "nvidia-open"; then
-        if [ "${GPU_CHOICE:-4}" != "1" ]; then
-            native_pkgs+=(kernel-default-devel kernel-devel)
-        fi
-        native_pkgs+=(nvidia-open-driver-G06-signed-kmp-meta)
-    fi
     if app_enabled "flatseal";  then optional_pkgs+=(flatseal); fi
     if app_enabled "tailscale"; then optional_pkgs+=(tailscale); fi
     if app_enabled "fs-tools"; then
@@ -105,9 +91,6 @@ distro_verify_apps() {
             register_expected_native "flatseal|flatpak:com.github.tchx84.Flatseal"
         fi
         if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if app_enabled "nvidia-open"; then
-            register_expected_native "nvidia-open-driver-G06-signed-kmp-meta|nvidia-open-driver-G06-signed-kmp-default"
-        fi
 
         if app_enabled "fs-tools"; then
             register_expected_native \
