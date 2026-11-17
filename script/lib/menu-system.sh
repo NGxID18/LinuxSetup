@@ -9,6 +9,83 @@ _driver_item_help() {
     esac
 }
 
+_tui_select_single() {
+    local title="$1"
+    local help_topic="$2"
+    local cursor="$3"
+    local cancel_idx="$4"
+    local count="${#_SINGLE_OPTS[@]}"
+    local status_msg="" i line
+
+    tui_enter_screen
+    while true; do
+        printf '\e[H'
+        printf '\e[1;36m========================================================================\e[0m\e[K\n'
+        printf '\e[1;37m  %s\e[0m\e[K\n' "$title"
+        printf '\e[1;36m========================================================================\e[0m\e[K\n'
+        for line in "${_SINGLE_SUBTITLES[@]}"; do
+            printf '%b\e[K\n' "$line"
+        done
+        if [ "${#_SINGLE_SUBTITLES[@]}" -gt 0 ]; then
+            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
+        fi
+
+        for ((i = 0; i < count; i++)); do
+            if [ "$i" -eq "$cursor" ]; then
+                printf '\e[7;1m> %d) %s\e[0m\e[K\n' "$((i + 1))" "${_SINGLE_OPTS[$i]}"
+            elif [ -n "${_SINGLE_DISABLED[$i]:-}" ]; then
+                printf '  \e[90m%d) %s\e[0m\e[K\n' "$((i + 1))" "${_SINGLE_OPTS[$i]}"
+            else
+                printf '  %d) %s\e[K\n' "$((i + 1))" "${_SINGLE_OPTS[$i]}"
+            fi
+        done
+
+        printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
+        printf '  \e[1;36mINFO :\e[0m %s\e[K\n' "$(tui_truncate "${_SINGLE_INFOS[$cursor]:-}" 64)"
+        if [ -n "$status_msg" ]; then
+            printf '  \e[1;31m%s\e[0m\e[K\n' "$status_msg"
+        else
+            printf '\e[K\n'
+        fi
+        printf '  [↑/↓/j/k] Pilih   [1-%d] Pilih #   [Enter/Space] Simpan   [?] Bantuan   [q/ESC] Kembali\e[K\n' "$count"
+        printf '\e[1;36m========================================================================\e[0m\e[J'
+
+        status_msg=""
+        tui_read_key
+        case "$_TUI_KEY" in
+            UP|k|K)   cursor=$(( (cursor - 1 + count) % count )) ;;
+            DOWN|j|J) cursor=$(( (cursor + 1) % count )) ;;
+            HOME)     cursor=0 ;;
+            END)      cursor=$((count - 1)) ;;
+            \?|h|H)   tui_show_help_modal "$help_topic" ;;
+            [1-9])
+                if [ "$_TUI_KEY" -le "$count" ]; then
+                    cursor=$((_TUI_KEY - 1))
+                    if [ -n "${_SINGLE_DISABLED[$cursor]:-}" ]; then
+                        status_msg="[DISABLED] ${_SINGLE_DISABLED[$cursor]}"
+                    else
+                        _TUI_SELECTED_IDX="$cursor"
+                        break
+                    fi
+                fi
+                ;;
+            ENTER|SPACE)
+                if [ -n "${_SINGLE_DISABLED[$cursor]:-}" ]; then
+                    status_msg="[DISABLED] ${_SINGLE_DISABLED[$cursor]}"
+                else
+                    _TUI_SELECTED_IDX="$cursor"
+                    break
+                fi
+                ;;
+            q|Q|ESC|EOF)
+                _TUI_SELECTED_IDX="$cancel_idx"
+                break
+                ;;
+        esac
+    done
+    tui_leave_screen
+}
+
 run_driver_menu() {
     ensure_repo_context
 
@@ -43,87 +120,37 @@ run_driver_menu() {
 
     if tui_is_interactive; then
         tui_enter_screen
-        local -a opts=(
+        local init_cursor=$((default_gpu - 1))
+        if [[ "${GPU_CHOICE:-}" =~ ^[1-4]$ ]]; then
+            if [ "$GPU_CHOICE" != "1" ] || [ "${NVIDIA_AVAILABLE:-1}" -eq 1 ]; then
+                init_cursor=$((GPU_CHOICE - 1))
+            fi
+        fi
+
+        local -a _SINGLE_OPTS=(
             "${NVIDIA_LABEL}${nv_suffix}"
             "${AMD_LABEL}${amd_suffix}"
             "${INTEL_LABEL}${intel_suffix}"
             "Skip (Keep Current / No GPU Driver)"
         )
-        local cursor=$((default_gpu - 1))
-        if [[ "${GPU_CHOICE:-}" =~ ^[1-4]$ ]]; then
-            if [ "$GPU_CHOICE" != "1" ] || [ "${NVIDIA_AVAILABLE:-1}" -eq 1 ]; then
-                cursor=$((GPU_CHOICE - 1))
-            fi
+        local -a _SINGLE_SUBTITLES=("  Detected GPU : \e[36m$(tui_truncate "$gpu_summary" 58)\e[0m")
+        if has_nvidia_gpu && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
+            _SINGLE_SUBTITLES+=("  \e[1;33mNotice       : GPU NVIDIA terdeteksi, aktifkan repo di menu Repository terlebih dulu.\e[0m")
+        fi
+        local -a _SINGLE_INFOS=(
+            "$(_driver_item_help 0)"
+            "$(_driver_item_help 1)"
+            "$(_driver_item_help 2)"
+            "$(_driver_item_help 3)"
+        )
+        local -a _SINGLE_DISABLED=("" "" "" "")
+        if [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
+            _SINGLE_DISABLED[0]="${NVIDIA_BLOCKED_REASON:-Required repository for NVIDIA is not enabled.}"
         fi
 
-        local status_msg="" i
-        while true; do
-            printf '\e[H'
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '\e[1;37m  GPU DRIVER SELECTION MENU (%s | %s)\e[0m\e[K\n' "${DISTRO^^}" "${PKG}"
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '  Detected GPU : \e[36m%s\e[0m\e[K\n' "$(tui_truncate "$gpu_summary" 58)"
-            if has_nvidia_gpu && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-                printf '  \e[1;33mNotice       : GPU NVIDIA terdeteksi, aktifkan repo di menu Repository terlebih dulu.\e[0m\e[K\n'
-            fi
-            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-
-            for ((i = 0; i < 4; i++)); do
-                if [ "$i" -eq "$cursor" ]; then
-                    printf '\e[7;1m> %d) %s\e[0m\e[K\n' "$((i + 1))" "${opts[$i]}"
-                else
-                    if [ "$i" -eq 0 ] && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-                        printf '  \e[90m%d) %s\e[0m\e[K\n' "$((i + 1))" "${opts[$i]}"
-                    else
-                        printf '  %d) %s\e[K\n' "$((i + 1))" "${opts[$i]}"
-                    fi
-                fi
-            done
-
-            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  \e[1;36mINFO :\e[0m %s\e[K\n' "$(tui_truncate "$(_driver_item_help "$cursor")" 64)"
-            if [ -n "$status_msg" ]; then
-                printf '  \e[1;31m%s\e[0m\e[K\n' "$status_msg"
-            else
-                printf '\e[K\n'
-            fi
-            printf '  [↑/↓/j/k] Pilih   [1-4] Pilih #   [Enter/Space] Simpan   [?] Bantuan   [q/ESC] Kembali\e[K\n'
-            printf '\e[1;36m========================================================================\e[0m\e[J'
-
-            status_msg=""
-            tui_read_key
-            case "$_TUI_KEY" in
-                UP|k|K)   cursor=$(( (cursor - 1 + 4) % 4 )) ;;
-                DOWN|j|J) cursor=$(( (cursor + 1) % 4 )) ;;
-                HOME)     cursor=0 ;;
-                END)      cursor=3 ;;
-                \?|h|H)   tui_show_help_modal "driver" ;;
-                [1-4])
-                    cursor=$((_TUI_KEY - 1))
-                    if [ "$cursor" -eq 0 ] && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-                        status_msg="[DISABLED] ${NVIDIA_BLOCKED_REASON:-Required repository for NVIDIA is not enabled.}"
-                    else
-                        GPU_CHOICE="$((cursor + 1))"
-                        break
-                    fi
-                    ;;
-                ENTER|SPACE)
-                    if [ "$cursor" -eq 0 ] && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-                        status_msg="[DISABLED] ${NVIDIA_BLOCKED_REASON:-Required repository for NVIDIA is not enabled.}"
-                    else
-                        GPU_CHOICE="$((cursor + 1))"
-                        break
-                    fi
-                    ;;
-                q|Q|ESC|EOF)
-                    GPU_CHOICE="${GPU_CHOICE:-$default_gpu}"
-                    if [ "$GPU_CHOICE" = "1" ] && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-                        GPU_CHOICE="4"
-                    fi
-                    break
-                    ;;
-            esac
-        done
+        local _TUI_SELECTED_IDX="$init_cursor"
+        _tui_select_single "GPU DRIVER SELECTION MENU (${DISTRO^^} | ${PKG})" "driver" "$init_cursor" "$init_cursor"
+        GPU_CHOICE="$((_TUI_SELECTED_IDX + 1))"
 
         case "$GPU_CHOICE" in
             1) GPU_VENDOR="nvidia" ;;
@@ -243,68 +270,29 @@ run_zram_menu() {
     esac
 
     if tui_is_interactive; then
-        tui_enter_screen
-        local -a opts=(
+        local zram_msg="Swap terkompresi (zstd) di RAM: cepat, hemat SSD, & direkomendasikan sesuai kapasitas RAM."
+        local -a _SINGLE_OPTS=(
             "32 GB (32768 MB)${r1}"
             "16 GB (16384 MB)${r2}"
             "8 GB  (8192 MB)${r3}"
             "4 GB  (4096 MB)${r4}"
             "Skip (No zRAM swap)"
         )
-        local cursor=$((default_zram - 1))
+        local -a _SINGLE_SUBTITLES=("  Detected System RAM : \e[36m${ram_label}\e[0m")
+        local -a _SINGLE_INFOS=(
+            "$zram_msg" "$zram_msg" "$zram_msg" "$zram_msg"
+            "Lewati pembuatan swap zRAM (pilih jika Anda sudah mengatur swap sendiri)."
+        )
+        local -a _SINGLE_DISABLED=("" "" "" "" "")
+
+        local init_cursor=$((default_zram - 1))
         if [[ "${ZRAM_CHOICE:-}" =~ ^[1-5]$ ]]; then
-            cursor=$((ZRAM_CHOICE - 1))
+            init_cursor=$((ZRAM_CHOICE - 1))
         fi
 
-        local i info_zram
-        while true; do
-            if [ "$cursor" -eq 4 ]; then
-                info_zram="Lewati pembuatan swap zRAM (pilih jika Anda sudah mengatur swap sendiri)."
-            else
-                info_zram="Swap terkompresi (zstd) di RAM: cepat, hemat SSD, & direkomendasikan sesuai kapasitas RAM."
-            fi
-
-            printf '\e[H'
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '\e[1;37m  ZRAM SWAP CONFIGURATION MENU (zstd compression)\e[0m\e[K\n'
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '  Detected System RAM : \e[36m%s\e[0m\e[K\n' "$ram_label"
-            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            for ((i = 0; i < 5; i++)); do
-                if [ "$i" -eq "$cursor" ]; then
-                    printf '\e[7;1m> %d) %s\e[0m\e[K\n' "$((i + 1))" "${opts[$i]}"
-                else
-                    printf '  %d) %s\e[K\n' "$((i + 1))" "${opts[$i]}"
-                fi
-            done
-            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  \e[1;36mINFO :\e[0m %s\e[K\n' "$(tui_truncate "$info_zram" 64)"
-            printf '  [↑/↓/j/k] Pilih   [1-5] Pilih #   [Enter/Space] Simpan   [?] Bantuan   [q/ESC] Kembali\e[K\n'
-            printf '\e[1;36m========================================================================\e[0m\e[J'
-
-            tui_read_key
-            case "$_TUI_KEY" in
-                UP|k|K)   cursor=$(( (cursor - 1 + 5) % 5 )) ;;
-                DOWN|j|J) cursor=$(( (cursor + 1) % 5 )) ;;
-                HOME)     cursor=0 ;;
-                END)      cursor=4 ;;
-                \?|h|H)   tui_show_help_modal "zram" ;;
-                [1-5])
-                    cursor=$((_TUI_KEY - 1))
-                    ZRAM_CHOICE="$((cursor + 1))"
-                    break
-                    ;;
-                ENTER|SPACE)
-                    ZRAM_CHOICE="$((cursor + 1))"
-                    break
-                    ;;
-                q|Q|ESC|EOF)
-                    ZRAM_CHOICE="${ZRAM_CHOICE:-$default_zram}"
-                    break
-                    ;;
-            esac
-        done
-        tui_leave_screen
+        local _TUI_SELECTED_IDX="$init_cursor"
+        _tui_select_single "ZRAM SWAP CONFIGURATION MENU (zstd compression)" "zram" "$init_cursor" "$init_cursor"
+        ZRAM_CHOICE="$((_TUI_SELECTED_IDX + 1))"
     else
         echo ""
         echo "========================================================================"
@@ -369,76 +357,28 @@ run_de_menu() {
     local choice="1"
 
     if tui_is_interactive; then
-        tui_enter_screen
-        local cursor=0 i info_de=""
+        local init_cursor=0 i
         if [ "${DE_CHOICE:-}" = "none" ]; then
-            cursor=$((skip_idx - 1))
+            init_cursor=$((skip_idx - 1))
         elif [ -n "${DE_CHOICE:-}" ]; then
             for ((i = 0; i < count; i++)); do
-                [ "${de_ids[$i]}" = "$DE_CHOICE" ] && { cursor="$i"; break; }
+                [ "${de_ids[$i]}" = "$DE_CHOICE" ] && { init_cursor="$i"; break; }
             done
         fi
 
-        while true; do
-            if [ "$cursor" -eq "$((skip_idx - 1))" ]; then
-                info_de="Lewati instalasi tampilan grafis (cocok untuk server/CLI atau sudah punya DE sendiri)."
-            else
-                info_de="Instal antarmuka desktop grafis (${de_ids[$cursor]}) minimal beserta login manager & tema."
-            fi
-
-            printf '\e[H'
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '\e[1;37m  DESKTOP ENVIRONMENT / GUI MENU (%s | %s)\e[0m\e[K\n' "${DISTRO^^}" "${PKG}"
-            printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            for ((i = 0; i < count; i++)); do
-                if [ "$i" -eq "$cursor" ]; then
-                    printf '\e[7;1m> %d) %s\e[0m\e[K\n' "$((i + 1))" "${de_labels[$i]}"
-                else
-                    printf '  %d) %s\e[K\n' "$((i + 1))" "${de_labels[$i]}"
-                fi
-            done
-            if [ "$((skip_idx - 1))" -eq "$cursor" ]; then
-                printf '\e[7;1m> %d) Skip (No Desktop Environment / Keep Current)\e[0m\e[K\n' "$skip_idx"
-            else
-                printf '  %d) Skip (No Desktop Environment / Keep Current)\e[K\n' "$skip_idx"
-            fi
-            printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  \e[1;36mINFO :\e[0m %s\e[K\n' "$(tui_truncate "$info_de" 64)"
-            printf '  [↑/↓/j/k] Pilih   [1-%d] Pilih #   [Enter/Space] Simpan   [?] Bantuan   [q/ESC] Kembali\e[K\n' "$skip_idx"
-            printf '\e[1;36m========================================================================\e[0m\e[J'
-
-            tui_read_key
-            case "$_TUI_KEY" in
-                UP|k|K)   cursor=$(( (cursor - 1 + skip_idx) % skip_idx )) ;;
-                DOWN|j|J) cursor=$(( (cursor + 1) % skip_idx )) ;;
-                HOME)     cursor=0 ;;
-                END)      cursor=$((skip_idx - 1)) ;;
-                \?|h|H)   tui_show_help_modal "de" ;;
-                [1-9])
-                    if [ "$_TUI_KEY" -le "$skip_idx" ]; then
-                        cursor=$((_TUI_KEY - 1))
-                        choice="$_TUI_KEY"
-                        break
-                    fi
-                    ;;
-                ENTER|SPACE)
-                    choice=$((cursor + 1))
-                    break
-                    ;;
-                q|Q|ESC|EOF)
-                    if [ "${DE_CHOICE:-}" = "none" ]; then
-                        choice="$skip_idx"
-                    else
-                        choice="1"
-                        for ((i = 0; i < count; i++)); do
-                            [ "${de_ids[$i]}" = "${DE_CHOICE:-}" ] && { choice="$((i + 1))"; break; }
-                        done
-                    fi
-                    break
-                    ;;
-            esac
+        local -a _SINGLE_OPTS=() _SINGLE_SUBTITLES=() _SINGLE_INFOS=() _SINGLE_DISABLED=()
+        for ((i = 0; i < count; i++)); do
+            _SINGLE_OPTS+=("${de_labels[$i]}")
+            _SINGLE_INFOS+=("Instal antarmuka desktop grafis (${de_ids[$i]}) minimal beserta login manager & tema.")
+            _SINGLE_DISABLED+=("")
         done
-        tui_leave_screen
+        _SINGLE_OPTS+=("Skip (No Desktop Environment / Keep Current)")
+        _SINGLE_INFOS+=("Lewati instalasi tampilan grafis (cocok untuk server/CLI atau sudah punya DE sendiri).")
+        _SINGLE_DISABLED+=("")
+
+        local _TUI_SELECTED_IDX="$init_cursor"
+        _tui_select_single "DESKTOP ENVIRONMENT / GUI MENU (${DISTRO^^} | ${PKG})" "de" "$init_cursor" "$init_cursor"
+        choice="$((_TUI_SELECTED_IDX + 1))"
     else
         echo ""
         echo "========================================================================"

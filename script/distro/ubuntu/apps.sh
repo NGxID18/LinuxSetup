@@ -91,25 +91,25 @@ distro_apply_apps() {
 }
 
 distro_verify_apps() {
-    ensure_repo_context
+    ensure_apps_context
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
-        if app_verifies "flatseal"; then
+        if app_enabled "flatseal"; then
             if repo_enabled "universe"; then
                 register_expected_native "flatseal|flatpak:com.github.tchx84.Flatseal"
             elif repo_enabled "flathub"; then
                 register_expected_flatpak "com.github.tchx84.Flatseal"
             fi
         fi
-        if app_verifies "vscodium" && repo_enabled "vscodium"; then register_expected_native "codium|vscodium"; fi
-        if app_verifies "tuned"; then register_expected_native tuned; fi
-        if app_verifies "snapper" && repo_enabled "universe"; then register_expected_native snapper; fi
-        if app_verifies "cron"; then register_expected_native "cron|cronie"; fi
-        if app_verifies "tailscale" && repo_enabled "tailscale"; then register_expected_native tailscale; fi
-        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "nvidia-open"; then register_expected_native nvidia-driver; fi
+        if app_enabled "vscodium" && repo_enabled "vscodium"; then register_expected_native "codium|vscodium"; fi
+        if app_enabled "tuned";        then register_expected_native tuned; fi
+        if app_enabled "snapper" && repo_enabled "universe"; then register_expected_native snapper; fi
+        if app_enabled "cron";         then register_expected_native "cron|cronie"; fi
+        if app_enabled "tailscale" && repo_enabled "tailscale"; then register_expected_native tailscale; fi
+        if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
+        if app_enabled "nvidia-open";  then register_expected_native nvidia-driver; fi
 
-        if app_verifies "fs-tools"; then
+        if app_enabled "fs-tools"; then
             register_expected_native \
                 util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 \
                 ntfs-3g xfsprogs dosfstools e2fsprogs

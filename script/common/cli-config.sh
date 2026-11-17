@@ -43,7 +43,7 @@ fi
 
 cp "$ROOT_DIR/config/shell/.zshrc" "$HOME/.zshrc"
 
-TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_USER="${SUDO_USER:-${USER:-$(id -un)}}"
 ZSH_BIN="$(command -v zsh || echo "/bin/zsh")"
 if [ -n "$ZSH_BIN" ]; then
     if ! grep -qxF "$ZSH_BIN" /etc/shells 2>/dev/null; then

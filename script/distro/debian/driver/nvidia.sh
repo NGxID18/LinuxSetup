@@ -24,13 +24,15 @@ driver_nvidia_install() {
     echo "==> Installing Debian NVIDIA Open Kernel DKMS driver & CUDA..."
     local current_kernel
     current_kernel="$(uname -r)"
+    local deb_arch
+    deb_arch="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
     sudo DEBIAN_FRONTEND=noninteractive apt install -y \
         "linux-headers-${current_kernel}" \
-        linux-headers-amd64 \
+        "linux-headers-${deb_arch}" \
         dkms \
         build-essential \
         firmware-misc-nonfree \
-        || sudo DEBIAN_FRONTEND=noninteractive apt install -y linux-headers-amd64 dkms build-essential firmware-misc-nonfree
+        || sudo DEBIAN_FRONTEND=noninteractive apt install -y "linux-headers-${deb_arch}" dkms build-essential firmware-misc-nonfree
 
     sudo DEBIAN_FRONTEND=noninteractive apt install -y \
         nvidia-kernel-open-dkms \
@@ -58,8 +60,10 @@ driver_nvidia_install() {
 driver_nvidia_verify() {
     ensure_repo_context
     if repo_enabled "non-free" && repo_enabled "non-free-firmware"; then
+        local deb_arch
+        deb_arch="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
         register_expected_native \
-            "linux-headers-$(uname -r)|linux-headers-amd64" \
+            "linux-headers-$(uname -r)|linux-headers-${deb_arch}" \
             dkms \
             build-essential \
             "nvidia-kernel-open-dkms|nvidia-kernel-dkms|nvidia-driver" \

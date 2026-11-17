@@ -17,49 +17,22 @@ register_repo() {
     REPO_RECOMMENDED+=("${5:-0}")
 }
 
-init_default_repos() {
-    detect_linux_env
-    if [ "${REPO_MENU_DONE:-0}" = "1" ]; then
-        return 0
-    fi
-
-    reset_repo_registry
-    distro_init_repos
-
-    SELECTED_REPOS=""
+_repo_build_selected() {
+    local -a flags=("$@")
     local i count="${#REPO_IDS[@]}"
+    SELECTED_REPOS=""
     for ((i = 0; i < count; i++)); do
-        if [ "${REPO_DEFAULTS[$i]}" -eq 1 ]; then
+        if [ "${flags[$i]:-0}" -eq 1 ]; then
             SELECTED_REPOS="${SELECTED_REPOS:+$SELECTED_REPOS }${REPO_IDS[$i]}"
         fi
     done
-
-    if [ -z "${AUR_HELPER:-}" ]; then
-        if repo_enabled "aur-yay"; then
-            AUR_HELPER="yay"
-        elif repo_enabled "aur-paru"; then
-            AUR_HELPER="paru"
-        else
-            AUR_HELPER=""
-        fi
-    fi
-
-    export SELECTED_REPOS AUR_HELPER
 }
 
-apply_recommended_repos() {
-    detect_linux_env
-    reset_repo_registry
-    distro_init_repos
-
-    SELECTED_REPOS=""
-    local i count="${#REPO_IDS[@]}"
-    for ((i = 0; i < count; i++)); do
-        if [ "${REPO_RECOMMENDED[$i]:-0}" -eq 1 ]; then
-            SELECTED_REPOS="${SELECTED_REPOS:+$SELECTED_REPOS }${REPO_IDS[$i]}"
-        fi
-    done
-
+_repo_sync_aur_helper() {
+    local keep_existing="${1:-0}"
+    if [ "$keep_existing" -eq 1 ] && [ -n "${AUR_HELPER:-}" ]; then
+        return 0
+    fi
     if repo_enabled "aur-yay"; then
         AUR_HELPER="yay"
     elif repo_enabled "aur-paru"; then
@@ -67,7 +40,36 @@ apply_recommended_repos() {
     else
         AUR_HELPER=""
     fi
+}
 
+_repo_ensure_distro_loaded() {
+    detect_linux_env
+    if ! declare -F distro_init_repos >/dev/null 2>&1 && [ -f "$DISTRO_DIR/repo.sh" ]; then
+        source "$DISTRO_DIR/repo.sh" ""
+    fi
+}
+
+init_default_repos() {
+    _repo_ensure_distro_loaded
+    if [ "${REPO_MENU_DONE:-0}" = "1" ]; then
+        return 0
+    fi
+
+    reset_repo_registry
+    distro_init_repos
+
+    _repo_build_selected "${REPO_DEFAULTS[@]}"
+    _repo_sync_aur_helper 1
+    export SELECTED_REPOS AUR_HELPER
+}
+
+apply_recommended_repos() {
+    _repo_ensure_distro_loaded
+    reset_repo_registry
+    distro_init_repos
+
+    _repo_build_selected "${REPO_RECOMMENDED[@]}"
+    _repo_sync_aur_helper 0
     REPO_MENU_DONE=1
     export SELECTED_REPOS REPO_MENU_DONE AUR_HELPER
 }
@@ -82,8 +84,54 @@ _repo_mutual_partner() {
     esac
 }
 
+_repo_toggle_index() {
+    local idx="$1"
+    local count="${#REPO_IDS[@]}"
+    local partner j
+    if [ "${state[$idx]}" -eq 1 ]; then
+        state[$idx]=0
+        return 0
+    fi
+    state[$idx]=1
+    partner="$(_repo_mutual_partner "${REPO_IDS[$idx]}")"
+    if [ -n "$partner" ]; then
+        for ((j = 0; j < count; j++)); do
+            [ "${REPO_IDS[$j]}" = "$partner" ] && state[$j]=0
+        done
+    fi
+}
+
+_repo_apply_preset() {
+    local preset="$1"
+    local count="${#REPO_IDS[@]}"
+    local i
+    case "$preset" in
+        all)
+            for ((i = 0; i < count; i++)); do
+                case "${REPO_IDS[$i]}" in
+                    aur-yay|packman-essentials) state[$i]=0 ;;
+                    *)                          state[$i]=1 ;;
+                esac
+            done
+            status_msg="Semua repository diaktifkan."
+            ;;
+        none)
+            for ((i = 0; i < count; i++)); do state[$i]=0; done
+            status_msg="Semua repository tambahan dinonaktifkan."
+            ;;
+        rec)
+            state=("${REPO_RECOMMENDED[@]}")
+            status_msg="Setelan Rekomendasi Pemula (*Rec) diterapkan!"
+            ;;
+        default)
+            state=("${REPO_DEFAULTS[@]}")
+            status_msg="Direset kembali ke repository aktif di sistem Anda."
+            ;;
+    esac
+}
+
 run_repo_menu() {
-    detect_linux_env
+    _repo_ensure_distro_loaded
     reset_repo_registry
     distro_init_repos
 
@@ -100,11 +148,11 @@ run_repo_menu() {
         done
     fi
 
-    local i partner="" j=""
+    local i status_msg=""
 
     if tui_is_interactive; then
         tui_enter_screen
-        local cursor=0 status_msg=""
+        local cursor=0
 
         while true; do
             printf '\e[H'
@@ -137,8 +185,10 @@ run_repo_menu() {
             done
 
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  \e[1;36mINFO :\e[0m \e[1m%s\e[0m [%s] — %s\e[K\n' \
-                "${REPO_IDS[$cursor]}" "${REPO_TAGS[$cursor]}" "$(tui_truncate "${REPO_DESCS[$cursor]}" 52)"
+            if [ "$count" -gt 0 ]; then
+                printf '  \e[1;36mINFO :\e[0m \e[1m%s\e[0m [%s] — %s\e[K\n' \
+                    "${REPO_IDS[$cursor]}" "${REPO_TAGS[$cursor]}" "$(tui_truncate "${REPO_DESCS[$cursor]}" 52)"
+            fi
             if [ -n "$status_msg" ]; then
                 printf '  \e[1;33m%s\e[0m\e[K\n' "$status_msg"
             else
@@ -151,63 +201,20 @@ run_repo_menu() {
             status_msg=""
             tui_read_key
             case "$_TUI_KEY" in
-                UP|k|K)   cursor=$(( (cursor - 1 + count) % count )) ;;
-                DOWN|j|J) cursor=$(( (cursor + 1) % count )) ;;
+                UP|k|K)   [ "$count" -gt 0 ] && cursor=$(( (cursor - 1 + count) % count )) ;;
+                DOWN|j|J) [ "$count" -gt 0 ] && cursor=$(( (cursor + 1) % count )) ;;
                 HOME)     cursor=0 ;;
-                END)      cursor=$((count - 1)) ;;
-                SPACE)
-                    if [ "${state[$cursor]}" -eq 1 ]; then
-                        state[$cursor]=0
-                    else
-                        state[$cursor]=1
-                        partner="$(_repo_mutual_partner "${REPO_IDS[$cursor]}")"
-                        if [ -n "$partner" ]; then
-                            for ((j = 0; j < count; j++)); do
-                                [ "${REPO_IDS[$j]}" = "$partner" ] && state[$j]=0
-                            done
-                        fi
-                    fi
-                    ;;
-                a|A)
-                    for ((i = 0; i < count; i++)); do
-                        case "${REPO_IDS[$i]}" in
-                            aur-yay|packman-essentials) state[$i]=0 ;;
-                            *)                          state[$i]=1 ;;
-                        esac
-                    done
-                    status_msg="Semua repository diaktifkan."
-                    ;;
-                n|N)
-                    for ((i = 0; i < count; i++)); do
-                        state[$i]=0
-                    done
-                    status_msg="Semua repository tambahan dinonaktifkan."
-                    ;;
-                r|R)
-                    state=("${REPO_RECOMMENDED[@]}")
-                    status_msg="Setelan Rekomendasi Pemula (*Rec) diterapkan!"
-                    ;;
-                d|D)
-                    state=("${REPO_DEFAULTS[@]}")
-                    status_msg="Direset kembali ke repository aktif di sistem Anda."
-                    ;;
-                \?|h|H)
-                    tui_show_help_modal "repo"
-                    ;;
+                END)      [ "$count" -gt 0 ] && cursor=$((count - 1)) ;;
+                SPACE)    [ "$count" -gt 0 ] && _repo_toggle_index "$cursor" ;;
+                a|A)      _repo_apply_preset "all" ;;
+                n|N)      _repo_apply_preset "none" ;;
+                r|R)      _repo_apply_preset "rec" ;;
+                d|D)      _repo_apply_preset "default" ;;
+                \?|h|H)   tui_show_help_modal "repo" ;;
                 [1-9])
                     if [ "$_TUI_KEY" -le "$count" ]; then
                         cursor=$((_TUI_KEY - 1))
-                        if [ "${state[$cursor]}" -eq 1 ]; then
-                            state[$cursor]=0
-                        else
-                            state[$cursor]=1
-                            partner="$(_repo_mutual_partner "${REPO_IDS[$cursor]}")"
-                            if [ -n "$partner" ]; then
-                                for ((j = 0; j < count; j++)); do
-                                    [ "${REPO_IDS[$j]}" = "$partner" ] && state[$j]=0
-                                done
-                            fi
-                        fi
+                        _repo_toggle_index "$cursor"
                     fi
                     ;;
                 ENTER|c|C|q|Q|ESC|EOF)
@@ -217,7 +224,7 @@ run_repo_menu() {
         done
         tui_leave_screen
     else
-        local input="" token="" idx=""
+        local input="" token=""
         while true; do
             echo ""
             echo "========================================================================"
@@ -248,46 +255,16 @@ run_repo_menu() {
             input="$(trim_whitespace "$input")"
 
             case "${input,,}" in
-                ""|c|confirm)
-                    break
-                    ;;
-                a|all)
-                    for ((i = 0; i < count; i++)); do
-                        case "${REPO_IDS[$i]}" in
-                            aur-yay|packman-essentials) state[$i]=0 ;;
-                            *)                          state[$i]=1 ;;
-                        esac
-                    done
-                    ;;
-                n|none)
-                    for ((i = 0; i < count; i++)); do
-                        state[$i]=0
-                    done
-                    ;;
-                r|rec|recommended)
-                    state=("${REPO_RECOMMENDED[@]}")
-                    ;;
-                d|default)
-                    state=("${REPO_DEFAULTS[@]}")
-                    ;;
+                ""|c|confirm)       break ;;
+                a|all)              _repo_apply_preset "all" ;;
+                n|none)             _repo_apply_preset "none" ;;
+                r|rec|recommended)  _repo_apply_preset "rec" ;;
+                d|default)          _repo_apply_preset "default" ;;
                 *)
                     local normalized="${input//,/ }"
                     for token in $normalized; do
                         if [[ "$token" =~ ^[0-9]+$ ]] && [ "$token" -ge 1 ] && [ "$token" -le "$count" ]; then
-                            idx=$((token - 1))
-                            if [ "${state[$idx]}" -eq 1 ]; then
-                                state[$idx]=0
-                            else
-                                state[$idx]=1
-                                partner="$(_repo_mutual_partner "${REPO_IDS[$idx]}")"
-                                if [ -n "$partner" ]; then
-                                    for ((j = 0; j < count; j++)); do
-                                        if [ "${REPO_IDS[$j]}" = "$partner" ]; then
-                                            state[$j]=0
-                                        fi
-                                    done
-                                fi
-                            fi
+                            _repo_toggle_index "$((token - 1))"
                         else
                             echo "  -> Ignored invalid option: '$token'"
                         fi
@@ -297,20 +274,8 @@ run_repo_menu() {
         done
     fi
 
-    SELECTED_REPOS=""
-    for ((i = 0; i < count; i++)); do
-        if [ "${state[$i]}" -eq 1 ]; then
-            SELECTED_REPOS="${SELECTED_REPOS:+$SELECTED_REPOS }${REPO_IDS[$i]}"
-        fi
-    done
-
-    if repo_enabled "aur-yay"; then
-        AUR_HELPER="yay"
-    elif repo_enabled "aur-paru"; then
-        AUR_HELPER="paru"
-    else
-        AUR_HELPER=""
-    fi
+    _repo_build_selected "${state[@]}"
+    _repo_sync_aur_helper 0
 
     REPO_MENU_DONE=1
     export SELECTED_REPOS REPO_MENU_DONE AUR_HELPER

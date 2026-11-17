@@ -21,14 +21,6 @@ app_enabled() {
     has_token "${SELECTED_APPS:-}" "$1"
 }
 
-app_verifies() {
-    if [ "${APPS_MENU_DONE:-0}" = "1" ]; then
-        app_enabled "$1"
-    else
-        return 0
-    fi
-}
-
 append_unique_tokens() {
     local current="${1:-}"
     shift
@@ -144,6 +136,15 @@ ensure_repo_context() {
     if [ "${REPO_MENU_DONE:-0}" != "1" ] && [ -z "${SELECTED_REPOS+x}" ]; then
         if [ -f "$DISTRO_DIR/repo.sh" ]; then
             source "$DISTRO_DIR/repo.sh" --init-defaults
+        fi
+    fi
+}
+
+ensure_apps_context() {
+    ensure_repo_context
+    if [ "${APPS_MENU_DONE:-0}" != "1" ] && [ -z "${SELECTED_APPS+x}" ]; then
+        if declare -F init_default_apps >/dev/null 2>&1; then
+            init_default_apps
         fi
     fi
 }

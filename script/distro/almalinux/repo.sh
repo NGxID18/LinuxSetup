@@ -134,6 +134,12 @@ distro_verify_repos() {
     if repo_enabled "epel"; then
         register_expected_native epel-release
     fi
+    if repo_enabled "rpmfusion-free"; then
+        register_expected_native rpmfusion-free-release
+    fi
+    if repo_enabled "rpmfusion-nonfree"; then
+        register_expected_native rpmfusion-nonfree-release
+    fi
 }
 
 case "${1:-}" in

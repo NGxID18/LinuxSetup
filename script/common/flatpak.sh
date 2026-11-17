@@ -150,18 +150,8 @@ install_selected_flatpaks() {
 }
 
 verify_selected_flatpaks() {
+    ensure_apps_context
     if ! repo_enabled "flathub"; then
-        return 0
-    fi
-
-    if [ "${APPS_MENU_DONE:-0}" != "1" ]; then
-        register_expected_flatpak \
-            com.valvesoftware.Steam \
-            com.discordapp.Discord \
-            io.gitlab.librewolf-community \
-            org.prismlauncher.PrismLauncher \
-            com.rtosta.zapzap \
-            com.obsproject.Studio
         return 0
     fi
 

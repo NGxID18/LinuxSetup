@@ -105,21 +105,21 @@ distro_apply_apps() {
 }
 
 distro_verify_apps() {
-    ensure_repo_context
+    ensure_apps_context
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
-        if app_verifies "flatseal"; then register_expected_native flatseal; fi
-        if app_verifies "vscodium" && (repo_enabled "aur-paru" || repo_enabled "aur-yay" || repo_enabled "chaotic-aur"); then
+        if app_enabled "flatseal"; then register_expected_native flatseal; fi
+        if app_enabled "vscodium" && (repo_enabled "aur-paru" || repo_enabled "aur-yay" || repo_enabled "chaotic-aur"); then
             register_expected_native "vscodium-bin|codium|vscodium"
         fi
-        if app_verifies "tuned";     then register_expected_native tuned; fi
-        if app_verifies "snapper";   then register_expected_native snapper; fi
-        if app_verifies "tailscale"; then register_expected_native tailscale; fi
-        if app_verifies "cron";      then register_expected_native cronie; fi
-        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
-        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "nvidia-open";  then register_expected_native nvidia-open-dkms; fi
+        if app_enabled "tuned";        then register_expected_native tuned; fi
+        if app_enabled "snapper";      then register_expected_native snapper; fi
+        if app_enabled "tailscale";    then register_expected_native tailscale; fi
+        if app_enabled "cron";         then register_expected_native cronie; fi
+        if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
+        if app_enabled "nvidia-open";  then register_expected_native nvidia-open-dkms; fi
 
-        if app_verifies "fs-tools"; then
+        if app_enabled "fs-tools"; then
             register_expected_native \
                 util-linux udisks2 lvm2 udisks2-lvm2 btrfs-progs udisks2-btrfs \
                 ntfs-3g xfsprogs exfatprogs dosfstools e2fsprogs

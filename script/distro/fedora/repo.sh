@@ -108,6 +108,15 @@ distro_verify_repos() {
     if repo_enabled "flathub"; then
         register_expected_native flatpak
     fi
+    if repo_enabled "rpmfusion-free"; then
+        register_expected_native rpmfusion-free-release
+    fi
+    if repo_enabled "rpmfusion-nonfree"; then
+        register_expected_native rpmfusion-nonfree-release
+    fi
+    if repo_enabled "rpmfusion-free-tainted"; then
+        register_expected_native rpmfusion-free-release-tainted
+    fi
     if repo_enabled "rpmfusion-nonfree-tainted"; then
         register_expected_native rpmfusion-nonfree-release-tainted
     fi

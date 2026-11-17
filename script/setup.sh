@@ -4,6 +4,21 @@ ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 source "$ROOT_DIR/script/lib/tui.sh"
 detect_linux_env
 
+_resolve_initial_de_choice() {
+    local requested="${1:-gnome}"
+    DE_CHOICE="$requested"
+    if [ ! -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ] && [ "$DE_CHOICE" != "none" ]; then
+        DE_CHOICE="none"
+        local f
+        for f in "$DISTRO_DIR"/de/*.sh; do
+            [ -f "$f" ] || continue
+            DE_CHOICE="$(basename "$f" .sh)"
+            break
+        done
+    fi
+    [ "$DE_CHOICE" = "gnome" ] && INSTALL_GNOME="Y" || INSTALL_GNOME="N"
+}
+
 refresh_repo_dependent_defaults() {
     detect_linux_env
 
@@ -28,23 +43,11 @@ refresh_repo_dependent_defaults() {
     fi
 
     if [ -f "$DISTRO_DIR/apps.sh" ]; then
-        source "$DISTRO_DIR/apps.sh"
-        reset_app_registry
-        distro_init_apps
-        if declare -F init_flatpak_apps >/dev/null 2>&1; then
-            init_flatpak_apps
-        fi
-
-        local count="${#APP_IDS[@]}" i
         if [ "${_APPS_CUSTOMIZED:-0}" -eq 0 ]; then
-            SELECTED_APPS=""
-            for ((i = 0; i < count; i++)); do
-                if [ "${APP_DEFAULTS[$i]}" -eq 1 ]; then
-                    SELECTED_APPS="${SELECTED_APPS:+$SELECTED_APPS }${APP_IDS[$i]}"
-                fi
-            done
+            init_default_apps
         else
-            local filtered="" tok
+            _populate_default_apps_registry
+            local count="${#APP_IDS[@]}" i filtered="" tok
             for tok in ${SELECTED_APPS:-}; do
                 for ((i = 0; i < count; i++)); do
                     if [ "${APP_IDS[$i]}" = "$tok" ]; then
@@ -54,12 +57,11 @@ refresh_repo_dependent_defaults() {
                 done
             done
             SELECTED_APPS="$filtered"
-        fi
-
-        if [ -n "${SELECTED_APPS:-}" ] || [ -n "${EXTRA_NATIVE_PKGS:-}" ] || [ -n "${EXTRA_FLATPAK_PKGS:-}" ]; then
-            INSTALL_APPS="Y"
-        else
-            INSTALL_APPS="N"
+            if [ -n "${SELECTED_APPS:-}" ] || [ -n "${EXTRA_NATIVE_PKGS:-}" ] || [ -n "${EXTRA_FLATPAK_PKGS:-}" ]; then
+                INSTALL_APPS="Y"
+            else
+                INSTALL_APPS="N"
+            fi
         fi
     fi
 }
@@ -70,17 +72,7 @@ init_setup_defaults() {
         source "$DISTRO_DIR/repo.sh" --init-defaults
     fi
 
-    DE_CHOICE="${DE_CHOICE:-gnome}"
-    if [ ! -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ] && [ "$DE_CHOICE" != "none" ]; then
-        DE_CHOICE="none"
-        local f
-        for f in "$DISTRO_DIR"/de/*.sh; do
-            [ -f "$f" ] || continue
-            DE_CHOICE="$(basename "$f" .sh)"
-            break
-        done
-    fi
-    [ "$DE_CHOICE" = "gnome" ] && INSTALL_GNOME="Y" || INSTALL_GNOME="N"
+    _resolve_initial_de_choice "${DE_CHOICE:-gnome}"
 
     INSTALL_COCKPIT="${INSTALL_COCKPIT:-N}"
     INSTALL_CLI="${INSTALL_CLI:-Y}"
@@ -98,20 +90,10 @@ init_setup_defaults() {
 
 apply_beginner_recommended_preset() {
     detect_linux_env
-    source "$DISTRO_DIR/repo.sh"
+    source "$DISTRO_DIR/repo.sh" ""
     apply_recommended_repos
 
-    DE_CHOICE="gnome"
-    if [ ! -f "$DISTRO_DIR/de/gnome.sh" ]; then
-        DE_CHOICE="none"
-        local f
-        for f in "$DISTRO_DIR"/de/*.sh; do
-            [ -f "$f" ] || continue
-            DE_CHOICE="$(basename "$f" .sh)"
-            break
-        done
-    fi
-    [ "$DE_CHOICE" = "gnome" ] && INSTALL_GNOME="Y" || INSTALL_GNOME="N"
+    _resolve_initial_de_choice "gnome"
 
     INSTALL_COCKPIT="N"
     INSTALL_CLI="Y"

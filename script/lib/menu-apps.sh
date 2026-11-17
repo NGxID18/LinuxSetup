@@ -320,13 +320,83 @@ PYEOF
     prompt_pick_search_results "native"
 }
 
-run_apps_menu() {
+_populate_default_apps_registry() {
     ensure_repo_context
+    if ! declare -F distro_init_apps >/dev/null 2>&1 && [ -f "$DISTRO_DIR/apps.sh" ]; then
+        source "$DISTRO_DIR/apps.sh" ""
+    fi
+
     reset_app_registry
-    distro_init_apps
+    if declare -F distro_init_apps >/dev/null 2>&1; then
+        distro_init_apps
+    fi
     if declare -F init_flatpak_apps >/dev/null 2>&1; then
         init_flatpak_apps
     fi
+}
+
+_finalize_selected_apps() {
+    local -a flags=("$@")
+    local count="${#APP_IDS[@]}"
+    local i
+    SELECTED_APPS=""
+    for ((i = 0; i < count; i++)); do
+        if [ "${flags[$i]:-0}" -eq 1 ]; then
+            SELECTED_APPS="${SELECTED_APPS:+$SELECTED_APPS }${APP_IDS[$i]}"
+        fi
+    done
+
+    EXTRA_NATIVE_PKGS="${EXTRA_NATIVE_PKGS:-}"
+    EXTRA_FLATPAK_PKGS="${EXTRA_FLATPAK_PKGS:-}"
+    if [ -n "$SELECTED_APPS" ] || [ -n "$EXTRA_NATIVE_PKGS" ] || [ -n "$EXTRA_FLATPAK_PKGS" ]; then
+        INSTALL_APPS="Y"
+    else
+        INSTALL_APPS="N"
+    fi
+    export SELECTED_APPS EXTRA_NATIVE_PKGS EXTRA_FLATPAK_PKGS INSTALL_APPS
+}
+
+init_default_apps() {
+    _populate_default_apps_registry
+    _finalize_selected_apps "${APP_DEFAULTS[@]}"
+}
+
+_apps_toggle_idx() {
+    local idx="$1"
+    if [ "${state[$idx]}" -eq 1 ]; then
+        state[$idx]=0
+    else
+        state[$idx]=1
+    fi
+}
+
+_apps_apply_preset() {
+    local preset="$1"
+    local count="${#APP_IDS[@]}"
+    local i
+    case "$preset" in
+        all)
+            for ((i = 0; i < count; i++)); do state[$i]=1; done
+            status_msg="Semua aplikasi preset dipilih."
+            ;;
+        none)
+            for ((i = 0; i < count; i++)); do state[$i]=0; done
+            status_msg="Semua aplikasi preset dikosongkan."
+            ;;
+        default)
+            state=("${APP_DEFAULTS[@]}")
+            status_msg="Aplikasi preset dikembalikan ke setelan default."
+            ;;
+        clear)
+            EXTRA_NATIVE_PKGS=""
+            EXTRA_FLATPAK_PKGS=""
+            status_msg="Daftar aplikasi custom (Extra) dikosongkan."
+            ;;
+    esac
+}
+
+run_apps_menu() {
+    _populate_default_apps_registry
 
     local count="${#APP_IDS[@]}"
     local -a state=("${APP_DEFAULTS[@]}")
@@ -347,11 +417,11 @@ run_apps_menu() {
     if repo_enabled "flathub"; then
         flathub_on=1
     fi
-    local i
+    local i status_msg=""
 
     if tui_is_interactive; then
         tui_enter_screen
-        local cursor=0 scroll_top=0 term_rows max_vis end_idx status_msg=""
+        local cursor=0 scroll_top=0 term_rows max_vis end_idx
 
         while true; do
             term_rows="$(tui_term_rows)"
@@ -449,41 +519,18 @@ run_apps_menu() {
                     tui_show_help_modal "apps"
                     ;;
                 SPACE)
-                    if [ "$count" -gt 0 ]; then
-                        if [ "${state[$cursor]}" -eq 1 ]; then
-                            state[$cursor]=0
-                        else
-                            state[$cursor]=1
-                        fi
-                    fi
+                    [ "$count" -gt 0 ] && _apps_toggle_idx "$cursor"
                     ;;
                 [1-9])
                     if [ "$_TUI_KEY" -le "$count" ]; then
                         cursor=$((_TUI_KEY - 1))
-                        if [ "${state[$cursor]}" -eq 1 ]; then
-                            state[$cursor]=0
-                        else
-                            state[$cursor]=1
-                        fi
+                        _apps_toggle_idx "$cursor"
                     fi
                     ;;
-                a|A)
-                    for ((i = 0; i < count; i++)); do state[$i]=1; done
-                    status_msg="Semua aplikasi preset dipilih."
-                    ;;
-                n|N)
-                    for ((i = 0; i < count; i++)); do state[$i]=0; done
-                    status_msg="Semua aplikasi preset dikosongkan."
-                    ;;
-                d|D)
-                    state=("${APP_DEFAULTS[@]}")
-                    status_msg="Aplikasi preset dikembalikan ke setelan default."
-                    ;;
-                x|X)
-                    EXTRA_NATIVE_PKGS=""
-                    EXTRA_FLATPAK_PKGS=""
-                    status_msg="Daftar aplikasi custom (Extra) dikosongkan."
-                    ;;
+                a|A) _apps_apply_preset "all" ;;
+                n|N) _apps_apply_preset "none" ;;
+                d|D) _apps_apply_preset "default" ;;
+                x|X) _apps_apply_preset "clear" ;;
                 /|s|S)
                     tui_prompt_line "Cari paket di repo Native/AUR (contoh: firefox): "
                     if [ -n "$_TUI_INPUT" ]; then
@@ -591,23 +638,10 @@ run_apps_menu() {
                 ""|c|confirm)
                     break
                     ;;
-                a|all)
-                    for ((i = 0; i < count; i++)); do
-                        state[$i]=1
-                    done
-                    ;;
-                n|none)
-                    for ((i = 0; i < count; i++)); do
-                        state[$i]=0
-                    done
-                    ;;
-                clear)
-                    EXTRA_NATIVE_PKGS=""
-                    EXTRA_FLATPAK_PKGS=""
-                    ;;
-                d|default)
-                    state=("${APP_DEFAULTS[@]}")
-                    ;;
+                a|all)     _apps_apply_preset "all" ;;
+                n|none)    _apps_apply_preset "none" ;;
+                clear)     _apps_apply_preset "clear" ;;
+                d|default) _apps_apply_preset "default" ;;
                 /*)
                     search_native_packages "${input#/}"
                     ;;
@@ -645,12 +679,7 @@ run_apps_menu() {
                     local normalized="${input//,/ }"
                     for token in $normalized; do
                         if [[ "$token" =~ ^[0-9]+$ ]] && [ "$token" -ge 1 ] && [ "$token" -le "$count" ]; then
-                            idx=$((token - 1))
-                            if [ "${state[$idx]}" -eq 1 ]; then
-                                state[$idx]=0
-                            else
-                                state[$idx]=1
-                            fi
+                            _apps_toggle_idx "$((token - 1))"
                         else
                             echo "  -> Ignored invalid option: '$token'"
                         fi
@@ -660,22 +689,11 @@ run_apps_menu() {
         done
     fi
 
-    SELECTED_APPS=""
-    for ((i = 0; i < count; i++)); do
-        if [ "${state[$i]}" -eq 1 ]; then
-            SELECTED_APPS="${SELECTED_APPS:+$SELECTED_APPS }${APP_IDS[$i]}"
-        fi
-    done
-
-    if [ -n "$SELECTED_APPS" ] || [ -n "$EXTRA_NATIVE_PKGS" ] || [ -n "$EXTRA_FLATPAK_PKGS" ]; then
-        INSTALL_APPS="Y"
-    else
-        INSTALL_APPS="N"
-    fi
+    _finalize_selected_apps "${state[@]}"
 
     _APPS_CUSTOMIZED=1
     APPS_MENU_DONE=1
-    export SELECTED_APPS EXTRA_NATIVE_PKGS EXTRA_FLATPAK_PKGS APPS_MENU_DONE INSTALL_APPS
+    export APPS_MENU_DONE
 
     if [ "${_TUI_DEPTH:-0}" -eq 0 ]; then
         echo -e "\n==> Selected Preset Apps : ${SELECTED_APPS:-none}"
