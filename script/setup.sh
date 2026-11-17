@@ -12,13 +12,10 @@ echo -e "\n[1/7] Configure Repositories:"
 source "$DISTRO_DIR/repo.sh" --menu
 
 echo -e "\n[2/7] Configure GPU Driver:"
-source "$DISTRO_DIR/driver.sh" --menu
+run_driver_menu
 
-echo -e "\n[3/7] Install minimal GNOME Desktop & Wallpapers?"
-if ! read -rp "Choice [Y/n]: " INSTALL_GNOME; then
-    INSTALL_GNOME="Y"
-fi
-INSTALL_GNOME="${INSTALL_GNOME:-Y}"
+echo -e "\n[3/7] Configure Desktop Environment / GUI:"
+run_de_menu
 
 echo -e "\n[4/7] Install Cockpit Web Console?"
 if ! read -rp "Choice [Y/n]: " INSTALL_COCKPIT; then
@@ -58,4 +55,4 @@ while true; do
     esac
 done
 
-export GPU_CHOICE NVD_TUNE AUR_HELPER INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS SELECTED_APPS EXTRA_NATIVE_PKGS EXTRA_FLATPAK_PKGS APPS_MENU_DONE INSTALL_CLI ZRAM_CHOICE ZRAM_SIZE
+export SELECTED_REPOS REPO_MENU_DONE GPU_CHOICE GPU_VENDOR NVD_TUNE DE_CHOICE AUR_HELPER INSTALL_GNOME INSTALL_COCKPIT INSTALL_APPS SELECTED_APPS EXTRA_NATIVE_PKGS EXTRA_FLATPAK_PKGS APPS_MENU_DONE INSTALL_CLI ZRAM_CHOICE ZRAM_SIZE

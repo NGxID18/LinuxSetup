@@ -63,14 +63,19 @@ source "$ROOT_DIR/script/setup.sh"
 echo -e "\n==> Starting installation (Package Manager: $PKG | Distro: $DISTRO ${DISTRO_VER})..."
 
 "$DISTRO_DIR/repo.sh"
-"$DISTRO_DIR/driver.sh"
 
-if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-    "$DISTRO_DIR/apps.sh" --gnome
+GPU_VENDOR="$(resolve_gpu_vendor)"
+if [ "$GPU_VENDOR" != "none" ] && [ -f "$DISTRO_DIR/driver/${GPU_VENDOR}.sh" ]; then
+    "$DISTRO_DIR/driver/${GPU_VENDOR}.sh"
+fi
+
+DE_CHOICE="$(resolve_de_choice)"
+if [ "$DE_CHOICE" != "none" ] && [ -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ]; then
+    "$DISTRO_DIR/de/${DE_CHOICE}.sh"
 fi
 
 if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-    "$DISTRO_DIR/apps.sh" --cockpit
+    "$DISTRO_DIR/system/cockpit.sh"
 fi
 
 if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
@@ -78,11 +83,11 @@ if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
 fi
 
 if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-    "$DISTRO_DIR/apps.sh" --zram
+    "$DISTRO_DIR/system/zram.sh"
 fi
 
 if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-    "$DISTRO_DIR/apps.sh" --cli
+    "$DISTRO_DIR/system/cli.sh"
 fi
 
 "$ROOT_DIR/script/verify.sh"

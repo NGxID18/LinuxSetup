@@ -6,13 +6,14 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="main, main-updates, debian-security"
-    register_repo "contrib"           "Official"    "DFSG-free packages that depend on non-free software" 1
-    register_repo "non-free"          "Official"    "Proprietary software & drivers (NVIDIA, etc.)" 1
-    register_repo "non-free-firmware" "Official"    "Hardware firmware & CPU microcode binaries" 1
-    register_repo "backports"         "Official"    "Newer backported packages (${DISTRO_CODENAME:-trixie}-backports)" 0
-    register_repo "vscodium"          "Third-Party" "VSCodium official Debian APT repository" 1
-    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository" 1
-    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository" 1
+    local codename="${DISTRO_CODENAME:-trixie}"
+    register_repo "contrib"           "Official"    "DFSG-free packages that depend on non-free software" "$(repo_active_flag is_apt_component_active 'contrib')"
+    register_repo "non-free"          "Official"    "Proprietary software & drivers (NVIDIA, etc.)"       "$(repo_active_flag is_apt_component_active 'non-free')"
+    register_repo "non-free-firmware" "Official"    "Hardware firmware & CPU microcode binaries"          "$(repo_active_flag is_apt_component_active 'non-free-firmware')"
+    register_repo "backports"         "Official"    "Newer backported packages (${codename}-backports)"   "$(repo_active_flag is_apt_repo_active "${codename}-backports")"
+    register_repo "vscodium"          "Third-Party" "VSCodium official Debian APT repository"             "$(repo_active_flag is_apt_repo_active 'vscodium')"
+    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                   "$(repo_active_flag is_apt_repo_active 'tailscale')"
+    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"              "$(repo_active_flag is_flathub_active)"
 }
 
 distro_apply_repos() {
@@ -44,23 +45,40 @@ distro_apply_repos() {
     fi
 
     if repo_enabled "backports"; then
-        if ! grep -qs "${codename}-backports" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
+        if ! is_apt_repo_active "${codename}-backports"; then
             echo "deb http://deb.debian.org/debian ${codename}-backports ${comps}" \
                 | sudo tee /etc/apt/sources.list.d/debian-backports.list > /dev/null
+        elif [ -f /etc/apt/sources.list.d/debian-backports.list ]; then
+            sudo sed -i -E "/^[[:space:]]*deb(-src)?[[:space:]]/ s/\bmain([[:space:]]+(contrib|non-free|non-free-firmware))*\b/${comps}/g" /etc/apt/sources.list.d/debian-backports.list
+        fi
+    else
+        sudo rm -f /etc/apt/sources.list.d/debian-backports.list
+        if [ -f /etc/apt/sources.list ]; then
+            sudo sed -i -E "/^[[:space:]]*deb(-src)?[[:space:]].*${codename}-backports/ s/^/# /" /etc/apt/sources.list
+        fi
+        if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sudo sed -i -E "/^Suites:/ { s/\b${codename}-backports\b//g; s/[[:space:]]+/ /g; s/[[:space:]]+$//; }" /etc/apt/sources.list.d/debian.sources
         fi
     fi
 
     if repo_enabled "vscodium"; then
         ensure_vscodium_apt_repo
+    else
+        disable_vscodium_apt_repo
     fi
 
-    if repo_enabled "tailscale" && [ ! -f /etc/apt/sources.list.d/tailscale.list ]; then
-        echo "==> Adding Tailscale APT repository..."
-        sudo mkdir -p /usr/share/keyrings
-        curl -fsSL "https://pkgs.tailscale.com/stable/debian/${codename}.noarmor.gpg" 2>/dev/null \
-            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null || true
-        curl -fsSL "https://pkgs.tailscale.com/stable/debian/${codename}.tailscale-keyring.list" 2>/dev/null \
-            | sudo tee /etc/apt/sources.list.d/tailscale.list > /dev/null || true
+    if repo_enabled "tailscale"; then
+        if ! is_apt_repo_active "tailscale"; then
+            echo "==> Adding Tailscale APT repository..."
+            sudo mkdir -p /usr/share/keyrings
+            curl -fsSL "https://pkgs.tailscale.com/stable/debian/${codename}.noarmor.gpg" 2>/dev/null \
+                | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null || true
+            curl -fsSL "https://pkgs.tailscale.com/stable/debian/${codename}.tailscale-keyring.list" 2>/dev/null \
+                | sudo tee /etc/apt/sources.list.d/tailscale.list > /dev/null || true
+        fi
+    elif [ -f /etc/apt/sources.list.d/tailscale.list ] || [ -f /etc/apt/sources.list.d/tailscale.sources ]; then
+        echo "==> Disabling Tailscale APT repository..."
+        sudo rm -f /etc/apt/sources.list.d/tailscale.list /etc/apt/sources.list.d/tailscale.sources
     fi
 
     sudo apt update -y

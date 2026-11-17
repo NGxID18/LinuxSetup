@@ -6,24 +6,21 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="cachyos, core, extra"
-    local def_v3=1 def_v4=0 def_znver4=0
-    if [ -f /etc/pacman.conf ]; then
-        grep -qE '^\[cachyos(-core|-extra)?-v3\]' /etc/pacman.conf && def_v3=1 || def_v3=0
-        grep -qE '^\[cachyos(-core|-extra)?-v4\]' /etc/pacman.conf && def_v4=1 || true
-        grep -qE '^\[cachyos(-core|-extra)?-znver4\]' /etc/pacman.conf && def_znver4=1 || true
-        if [ "$def_v3" -eq 0 ] && [ "$def_v4" -eq 0 ] && [ "$def_znver4" -eq 0 ]; then
-            def_v3=1
-        fi
+    local def_paru=0 def_yay=0
+    if command -v paru >/dev/null 2>&1; then
+        def_paru=1
+    elif command -v yay >/dev/null 2>&1; then
+        def_yay=1
     fi
 
-    register_repo "cachyos-v3"     "Optimization" "x86-64-v3 (AVX2/FMA) CPU-optimized packages" "$def_v3"
-    register_repo "cachyos-v4"     "Optimization" "x86-64-v4 (AVX-512) CPU-optimized packages" "$def_v4"
-    register_repo "cachyos-znver4" "Optimization" "AMD Zen 4 / Zen 5 architecture-optimized packages" "$def_znver4"
-    register_repo "multilib"       "Official"     "32-bit support repository ([multilib])" 1
-    register_repo "chaotic-aur"    "Third-Party"  "Pre-compiled binary repository for popular AUR packages" 0
-    register_repo "aur-paru"       "AUR Helper"   "Install Paru (Rust-based AUR helper)" 1
-    register_repo "aur-yay"        "AUR Helper"   "Install Yay (Go-based AUR helper)" 0
-    register_repo "flathub"        "Universal"    "Flathub Flatpak application repository" 1
+    register_repo "cachyos-v3"     "Optimization" "x86-64-v3 (AVX2/FMA) CPU-optimized packages"              "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v3')"
+    register_repo "cachyos-v4"     "Optimization" "x86-64-v4 (AVX-512) CPU-optimized packages"               "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v4')"
+    register_repo "cachyos-znver4" "Optimization" "AMD Zen 4 / Zen 5 architecture-optimized packages"        "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-znver4')"
+    register_repo "multilib"       "Official"     "32-bit support repository ([multilib])"                   "$(repo_active_flag is_pacman_repo_active 'multilib')"
+    register_repo "chaotic-aur"    "Third-Party"  "Pre-compiled binary repository for popular AUR packages"  "$(repo_active_flag is_pacman_repo_active 'chaotic-aur')"
+    register_repo "aur-paru"       "AUR Helper"   "Install Paru (Rust-based AUR helper)"                     "$def_paru"
+    register_repo "aur-yay"        "AUR Helper"   "Install Yay (Go-based AUR helper)"                        "$def_yay"
+    register_repo "flathub"        "Universal"    "Flathub Flatpak application repository"                   "$(repo_active_flag is_flathub_active)"
 }
 
 distro_apply_repos() {
@@ -38,35 +35,40 @@ distro_apply_repos() {
         local tier
         for tier in v3 v4 znver4; do
             if repo_enabled "cachyos-${tier}"; then
-                sudo sed -i -E "/^#\[cachyos(-core|-extra)?-${tier}\]/,/^#Include/ s/^#//" /etc/pacman.conf 2>/dev/null || true
-            elif grep -qE "^\[cachyos(-core|-extra)?-${tier}\]" /etc/pacman.conf 2>/dev/null; then
-                sudo sed -i -E "/^\[cachyos(-core|-extra)?-${tier}\]/,/^Include/ s/^/#/" /etc/pacman.conf 2>/dev/null || true
+                pacman_set_section_enabled "cachyos(-core|-extra)?-${tier}" 1
+            else
+                pacman_set_section_enabled "cachyos(-core|-extra)?-${tier}" 0
             fi
         done
     fi
 
     if repo_enabled "multilib"; then
-        if grep -qE '^#\[multilib\]' /etc/pacman.conf 2>/dev/null; then
-            sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-        fi
-    elif grep -qE '^\[multilib\]' /etc/pacman.conf 2>/dev/null; then
-        sudo sed -i '/^\[multilib\]/,/^Include/ s/^/#/' /etc/pacman.conf
+        pacman_set_section_enabled 'multilib' 1
+    else
+        pacman_set_section_enabled 'multilib' 0
     fi
 
-    if repo_enabled "chaotic-aur" && ! grep -qE '^\[chaotic-aur\]' /etc/pacman.conf 2>/dev/null; then
-        echo "==> Setting up Chaotic-AUR repository..."
-        sudo pacman-key --recv-key FBA220DFC880C036 --keyserver keyserver.ubuntu.com 2>/dev/null || true
-        sudo pacman-key --lsign-key FBA220DFC880C036 2>/dev/null || true
-        sudo pacman -U --noconfirm \
-            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' 2>/dev/null || true
-        if [ -f /etc/pacman.d/chaotic-mirrorlist ]; then
-            sudo tee -a /etc/pacman.conf > /dev/null <<'EOF'
+    if repo_enabled "chaotic-aur"; then
+        if grep -qE '^[[:space:]]*#?[[:space:]]*\[chaotic-aur\]' /etc/pacman.conf 2>/dev/null; then
+            pacman_set_section_enabled 'chaotic-aur' 1
+        fi
+        if [ ! -f /etc/pacman.d/chaotic-mirrorlist ] || ! grep -qE '^[[:space:]]*\[chaotic-aur\]' /etc/pacman.conf 2>/dev/null; then
+            echo "==> Setting up Chaotic-AUR repository..."
+            sudo pacman-key --recv-key FBA220DFC880C036 --keyserver keyserver.ubuntu.com 2>/dev/null || true
+            sudo pacman-key --lsign-key FBA220DFC880C036 2>/dev/null || true
+            sudo pacman -U --noconfirm \
+                'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+                'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' 2>/dev/null || true
+            if [ -f /etc/pacman.d/chaotic-mirrorlist ] && ! grep -qE '^[[:space:]]*\[chaotic-aur\]' /etc/pacman.conf 2>/dev/null; then
+                sudo tee -a /etc/pacman.conf > /dev/null <<'EOF'
 
 [chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist
 EOF
+            fi
         fi
+    elif is_pacman_repo_active 'chaotic-aur'; then
+        pacman_set_section_enabled 'chaotic-aur' 0
     fi
 
     sudo pacman -Syu --noconfirm
@@ -75,6 +77,22 @@ EOF
         base_pkgs+=(flatpak)
     fi
     sudo pacman -S --needed --noconfirm "${base_pkgs[@]}"
+
+    local pkg
+    if ! repo_enabled "aur-paru"; then
+        for pkg in paru paru-bin; do
+            if pacman -Qq "$pkg" >/dev/null 2>&1; then
+                sudo pacman -Rn --noconfirm "$pkg" 2>/dev/null || true
+            fi
+        done
+    fi
+    if ! repo_enabled "aur-yay"; then
+        for pkg in yay yay-bin; do
+            if pacman -Qq "$pkg" >/dev/null 2>&1; then
+                sudo pacman -Rn --noconfirm "$pkg" 2>/dev/null || true
+            fi
+        done
+    fi
 
     if [ -n "${AUR_HELPER:-}" ]; then
         sudo pacman -S --needed --noconfirm "$AUR_HELPER" 2>/dev/null || true
@@ -103,17 +121,10 @@ distro_verify_repos() {
     if repo_enabled "flathub"; then
         register_expected_native flatpak
     fi
-    if [ "${REPO_MENU_DONE:-0}" = "1" ]; then
-        if repo_enabled "aur-yay"; then
-            register_expected_native "yay-bin|yay"
-        elif repo_enabled "aur-paru"; then
-            register_expected_native "paru-bin|paru|yay-bin|yay"
-        fi
-    else
-        case "${AUR_HELPER:-paru}" in
-            yay)    register_expected_native "yay-bin|yay" ;;
-            paru|*) register_expected_native "paru-bin|paru|yay-bin|yay" ;;
-        esac
+    if repo_enabled "aur-yay"; then
+        register_expected_native "yay-bin|yay"
+    elif repo_enabled "aur-paru"; then
+        register_expected_native "paru-bin|paru|yay-bin|yay"
     fi
 }
 

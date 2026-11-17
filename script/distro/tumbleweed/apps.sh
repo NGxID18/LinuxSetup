@@ -83,60 +83,8 @@ distro_apply_apps() {
     install_selected_flatpaks
 }
 
-distro_install_gnome() {
-    echo "==> Installing minimal GNOME desktop on openSUSE Tumbleweed..."
-    sudo zypper --non-interactive remove -y patterns-base-minimal_base-conflicts 2>/dev/null || true
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
-        -t pattern gnome_basic 2>/dev/null \
-        || sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
-            patterns-gnome-gnome_basic 2>/dev/null || true
-
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
-        gdm gnome-shell gnome-control-center nautilus file-roller \
-        gnome-text-editor gnome-calculator gnome-tweaks gnome-extensions-app \
-        xdg-desktop-portal-gnome glib2-tools libgtop-2_0-0 sensors 2>/dev/null \
-        || sudo zypper --non-interactive --gpg-auto-import-keys install -y --no-recommends \
-            gdm gnome-shell gnome-control-center nautilus file-roller gnome-text-editor \
-            gnome-calculator gnome-tweaks gnome-extensions-app xdg-desktop-portal-gnome glib2-tools
-
-    sudo systemctl enable gdm 2>/dev/null || sudo systemctl enable display-manager 2>/dev/null || true
-    "$ROOT_DIR/script/common/gnome-config.sh"
-}
-
-distro_install_cockpit() {
-    echo "==> Installing Cockpit on openSUSE Tumbleweed..."
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y \
-        cockpit cockpit-storaged cockpit-networkmanager udisks2
-    "$ROOT_DIR/script/common/cockpit-config.sh"
-}
-
-distro_install_cli() {
-    echo "==> Installing CLI tools (Fastfetch, Kitty, Zsh) on openSUSE Tumbleweed..."
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y fastfetch kitty fontconfig zsh
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y \
-        zsh-autosuggestions zsh-syntax-highlighting 2>/dev/null || true
-    "$ROOT_DIR/script/common/cli-config.sh"
-}
-
-distro_install_zram() {
-    echo "==> Installing zRAM generator on openSUSE Tumbleweed..."
-    sudo zypper --non-interactive --gpg-auto-import-keys install -y zram-generator
-    "$ROOT_DIR/script/common/zram-config.sh"
-}
-
 distro_verify_apps() {
     ensure_repo_context
-
-    if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native \
-            gdm gnome-shell gnome-control-center nautilus file-roller \
-            gnome-text-editor gnome-calculator gnome-tweaks gnome-extensions-app \
-            glib2-tools "libgtop-2_0-0|typelib-1_0-GTop-2_0"
-    fi
-
-    if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native cockpit cockpit-storaged cockpit-networkmanager udisks2
-    fi
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
         if app_verifies "vscodium" && repo_enabled "vscodium"; then register_expected_native "codium|vscodium"; fi
@@ -158,23 +106,11 @@ distro_verify_apps() {
 
         verify_extra_and_flatpak_apps
     fi
-
-    if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-        register_expected_native zram-generator
-    fi
-
-    if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native fastfetch kitty fontconfig zsh
-    fi
 }
 
 case "${1:-}" in
-    --menu)    run_apps_menu ;;
-    --gnome)   set -euo pipefail; distro_install_gnome ;;
-    --cockpit) set -euo pipefail; distro_install_cockpit ;;
-    --cli)     set -euo pipefail; distro_install_cli ;;
-    --zram)    set -euo pipefail; distro_install_zram ;;
-    --verify)  distro_verify_apps ;;
+    --menu)   run_apps_menu ;;
+    --verify) distro_verify_apps ;;
     *)
         if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             set -euo pipefail

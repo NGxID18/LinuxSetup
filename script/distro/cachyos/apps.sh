@@ -104,52 +104,8 @@ distro_apply_apps() {
     install_selected_flatpaks
 }
 
-distro_install_gnome() {
-    echo "==> Installing minimal GNOME desktop on CachyOS..."
-    sudo pacman -S --needed --noconfirm \
-        gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-        gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk \
-        gvfs gvfs-mtp gvfs-smb gvfs-nfs nautilus file-roller loupe \
-        gnome-text-editor gnome-calculator gnome-software gnome-tweaks \
-        extension-manager libgtop lm_sensors
-    sudo systemctl enable gdm
-    "$ROOT_DIR/script/common/gnome-config.sh"
-}
-
-distro_install_cockpit() {
-    echo "==> Installing Cockpit on CachyOS..."
-    sudo pacman -S --needed --noconfirm cockpit cockpit-storaged udisks2 networkmanager
-    "$ROOT_DIR/script/common/cockpit-config.sh"
-}
-
-distro_install_cli() {
-    echo "==> Installing CLI tools (Fastfetch, Kitty, Nerd Font, Zsh) on CachyOS..."
-    sudo pacman -S --needed --noconfirm \
-        fastfetch kitty fontconfig ttf-jetbrains-mono-nerd zsh zsh-autosuggestions zsh-syntax-highlighting
-    "$ROOT_DIR/script/common/cli-config.sh"
-}
-
-distro_install_zram() {
-    echo "==> Installing zRAM generator on CachyOS..."
-    sudo pacman -S --needed --noconfirm zram-generator
-    "$ROOT_DIR/script/common/zram-config.sh"
-}
-
 distro_verify_apps() {
     ensure_repo_context
-
-    if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native \
-            gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-            gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk \
-            gvfs gvfs-mtp gvfs-smb gvfs-nfs nautilus file-roller loupe \
-            gnome-text-editor gnome-calculator gnome-software gnome-tweaks extension-manager \
-            libgtop lm_sensors
-    fi
-
-    if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native cockpit cockpit-storaged udisks2 networkmanager
-    fi
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
         if app_verifies "flatseal"; then register_expected_native flatseal; fi
@@ -171,23 +127,11 @@ distro_verify_apps() {
 
         verify_extra_and_flatpak_apps
     fi
-
-    if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-        register_expected_native zram-generator
-    fi
-
-    if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native fastfetch kitty fontconfig ttf-jetbrains-mono-nerd zsh
-    fi
 }
 
 case "${1:-}" in
-    --menu)    run_apps_menu ;;
-    --gnome)   set -euo pipefail; distro_install_gnome ;;
-    --cockpit) set -euo pipefail; distro_install_cockpit ;;
-    --cli)     set -euo pipefail; distro_install_cli ;;
-    --zram)    set -euo pipefail; distro_install_zram ;;
-    --verify)  distro_verify_apps ;;
+    --menu)   run_apps_menu ;;
+    --verify) distro_verify_apps ;;
     *)
         if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             set -euo pipefail

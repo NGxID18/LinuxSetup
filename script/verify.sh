@@ -17,8 +17,32 @@ EXPECTED_NATIVE_PKGS=()
 EXPECTED_FLATPAK_PKGS=()
 
 source "$DISTRO_DIR/repo.sh" --verify
-source "$DISTRO_DIR/driver.sh" --verify
-source "$DISTRO_DIR/apps.sh" --verify
+
+GPU_VENDOR="$(resolve_gpu_vendor)"
+if [ "$GPU_VENDOR" != "none" ] && [ -f "$DISTRO_DIR/driver/${GPU_VENDOR}.sh" ]; then
+    source "$DISTRO_DIR/driver/${GPU_VENDOR}.sh" --verify
+fi
+
+DE_CHOICE="$(resolve_de_choice)"
+if [ "$DE_CHOICE" != "none" ] && [ -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ]; then
+    source "$DISTRO_DIR/de/${DE_CHOICE}.sh" --verify
+fi
+
+if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
+    source "$DISTRO_DIR/system/cockpit.sh" --verify
+fi
+
+if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
+    source "$DISTRO_DIR/apps.sh" --verify
+fi
+
+if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
+    source "$DISTRO_DIR/system/zram.sh" --verify
+fi
+
+if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
+    source "$DISTRO_DIR/system/cli.sh" --verify
+fi
 
 is_flatpak_installed() {
     flatpak info "$1" >/dev/null 2>&1

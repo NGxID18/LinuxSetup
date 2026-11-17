@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}"
+source "$ROOT_DIR/script/lib/tui.sh"
+
+driver_nvidia_info() {
+    NVIDIA_AVAILABLE=1
+    NVIDIA_LABEL="NVIDIA (Open Kernel DKMS + CUDA) [extra]"
+}
+
+driver_nvidia_install() {
+    ensure_repo_context
+    echo "==> Installing Arch Linux NVIDIA Open Kernel DKMS driver & CUDA..."
+    local -a headers=(dkms)
+    local k
+    for k in linux linux-zen linux-lts linux-hardened; do
+        if pacman -Qq "$k" >/dev/null 2>&1; then
+            headers+=("${k}-headers")
+        fi
+    done
+    if [ "${#headers[@]}" -eq 1 ]; then
+        headers+=(linux-headers)
+    fi
+
+    sudo pacman -S --needed --noconfirm \
+        "${headers[@]}" \
+        nvidia-open-dkms \
+        nvidia-utils \
+        opencl-nvidia \
+        libva-nvidia-driver \
+        nvidia-settings \
+        cuda \
+        cudnn
+
+    sudo systemctl enable nvidia-persistenced.service 2>/dev/null || true
+    sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service 2>/dev/null || true
+    sudo mkinitcpio -P
+
+    if [[ "${NVD_TUNE:-N}" =~ ^[Yy]$ ]]; then
+        "$ROOT_DIR/script/common/5060tune.sh"
+    fi
+}
+
+driver_nvidia_verify() {
+    ensure_repo_context
+    register_expected_native dkms
+    local found_hdr=0 k
+    for k in linux linux-zen linux-lts linux-hardened; do
+        if pacman -Qq "$k" >/dev/null 2>&1; then
+            register_expected_native "${k}-headers"
+            found_hdr=1
+        fi
+    done
+    if [ "$found_hdr" -eq 0 ]; then
+        register_expected_native linux-headers
+    fi
+    register_expected_native \
+        "nvidia-open-dkms|nvidia-dkms|nvidia" \
+        nvidia-utils \
+        opencl-nvidia \
+        libva-nvidia-driver \
+        nvidia-settings \
+        cuda \
+        cudnn
+}
+
+case "${1:-}" in
+    --info)   driver_nvidia_info ;;
+    --verify) driver_nvidia_verify ;;
+    *)
+        if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+            set -euo pipefail
+            driver_nvidia_install
+        fi
+        ;;
+esac

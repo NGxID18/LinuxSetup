@@ -6,15 +6,15 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="fedora, updates"
-    register_repo "rpmfusion-free"            "Community"   "RPM Fusion Free (multimedia codecs & FOSS tools)" 1
-    register_repo "rpmfusion-nonfree"         "Community"   "RPM Fusion Nonfree (NVIDIA drivers, Steam, codecs)" 1
-    register_repo "rpmfusion-free-tainted"    "Community"   "RPM Fusion Free Tainted (libdvdcss & patent-restricted FOSS)" 0
-    register_repo "rpmfusion-nonfree-tainted" "Community"   "RPM Fusion Nonfree Tainted (restricted firmware & drivers)" 1
-    register_repo "fedora-cisco-openh264"     "Official"    "Cisco OpenH264 codec for browsers & GStreamer" 1
-    register_repo "terra"                     "Third-Party" "Fyra Labs Terra rolling community repository" 0
-    register_repo "updates-testing"           "Official"    "Fedora staging updates testing repository (*-testing)" 0
-    register_repo "vscodium"                  "Third-Party" "VSCodium official RPM repository" 1
-    register_repo "flathub"                   "Universal"   "Flathub Flatpak application repository" 1
+    register_repo "rpmfusion-free"            "Community"   "RPM Fusion Free (multimedia codecs & FOSS tools)"            "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"
+    register_repo "rpmfusion-nonfree"         "Community"   "RPM Fusion Nonfree (NVIDIA drivers, Steam, codecs)"          "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"
+    register_repo "rpmfusion-free-tainted"    "Community"   "RPM Fusion Free Tainted (libdvdcss & patent-restricted FOSS)" "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free-tainted$')"
+    register_repo "rpmfusion-nonfree-tainted" "Community"   "RPM Fusion Nonfree Tainted (restricted firmware & drivers)"  "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree-tainted$')"
+    register_repo "fedora-cisco-openh264"     "Official"    "Cisco OpenH264 codec for browsers & GStreamer"              "$(repo_active_flag is_dnf_repo_active '^fedora-cisco-openh264$')"
+    register_repo "terra"                     "Third-Party" "Fyra Labs Terra rolling community repository"                "$(repo_active_flag is_dnf_repo_active '^terra')"
+    register_repo "updates-testing"           "Official"    "Fedora staging updates testing repository (*-testing)"       "$(repo_active_flag is_dnf_repo_active '^updates-testing$')"
+    register_repo "vscodium"                  "Third-Party" "VSCodium official RPM repository"                            "$(repo_active_flag is_dnf_repo_active '^vscodium$')"
+    register_repo "flathub"                   "Universal"   "Flathub Flatpak application repository"                      "$(repo_active_flag is_flathub_active)"
 }
 
 distro_apply_repos() {
@@ -28,43 +28,69 @@ distro_apply_repos() {
     fedora_ver="$(rpm -E %fedora)"
 
     if repo_enabled "rpmfusion-free"; then
-        sudo dnf install -y \
-            "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_ver}.noarch.rpm" || true
+        if ! is_dnf_repo_present '^rpmfusion-free$'; then
+            sudo dnf install -y \
+                "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_ver}.noarch.rpm" || true
+        fi
+        set_matching_dnf_repos_enabled '^rpmfusion-free(-updates)?$' 1
+    else
+        set_matching_dnf_repos_enabled '^rpmfusion-free(-updates)?$' 0
     fi
+
     if repo_enabled "rpmfusion-nonfree"; then
-        sudo dnf install -y \
-            "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_ver}.noarch.rpm" || true
+        if ! is_dnf_repo_present '^rpmfusion-nonfree$'; then
+            sudo dnf install -y \
+                "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${fedora_ver}.noarch.rpm" || true
+        fi
+        set_matching_dnf_repos_enabled '^rpmfusion-nonfree(-updates)?$' 1
+    else
+        set_matching_dnf_repos_enabled '^rpmfusion-nonfree(-updates)?$' 0
     fi
+
     if repo_enabled "rpmfusion-free-tainted"; then
-        sudo dnf install -y rpmfusion-free-release-tainted 2>/dev/null || true
+        if ! is_dnf_repo_present '^rpmfusion-free-tainted$'; then
+            sudo dnf install -y rpmfusion-free-release-tainted 2>/dev/null || true
+        fi
+        set_matching_dnf_repos_enabled '^rpmfusion-free-tainted$' 1
+    else
+        set_matching_dnf_repos_enabled '^rpmfusion-free-tainted$' 0
     fi
+
     if repo_enabled "rpmfusion-nonfree-tainted"; then
-        sudo dnf install -y rpmfusion-nonfree-release-tainted 2>/dev/null || true
+        if ! is_dnf_repo_present '^rpmfusion-nonfree-tainted$'; then
+            sudo dnf install -y rpmfusion-nonfree-release-tainted 2>/dev/null || true
+        fi
+        set_matching_dnf_repos_enabled '^rpmfusion-nonfree-tainted$' 1
+    else
+        set_matching_dnf_repos_enabled '^rpmfusion-nonfree-tainted$' 0
     fi
 
     if repo_enabled "fedora-cisco-openh264"; then
-        sudo dnf config-manager setopt "fedora-cisco-openh264.enabled=1" 2>/dev/null \
-            || sudo dnf config-manager --set-enabled fedora-cisco-openh264 2>/dev/null || true
+        set_dnf_repo_enabled "fedora-cisco-openh264" 1
     else
-        sudo dnf config-manager setopt "fedora-cisco-openh264.enabled=0" 2>/dev/null \
-            || sudo dnf config-manager --set-disabled fedora-cisco-openh264 2>/dev/null || true
+        set_dnf_repo_enabled "fedora-cisco-openh264" 0
     fi
 
     if repo_enabled "terra"; then
-        sudo dnf install -y --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra${fedora_ver}" terra-release 2>/dev/null \
-            || sudo dnf config-manager addrepo --from-repofile=https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo 2>/dev/null || true
+        if ! is_dnf_repo_present '^terra'; then
+            sudo dnf install -y --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra${fedora_ver}" terra-release 2>/dev/null \
+                || sudo dnf config-manager addrepo --from-repofile=https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo 2>/dev/null || true
+        fi
+        set_matching_dnf_repos_enabled '^terra(-mesa|-nvidia|-extras)?$' 1
+    else
+        set_matching_dnf_repos_enabled '^terra' 0
     fi
 
     if repo_enabled "updates-testing"; then
-        sudo dnf config-manager setopt "updates-testing.enabled=1" 2>/dev/null \
-            || sudo dnf config-manager --set-enabled updates-testing 2>/dev/null || true
+        set_dnf_repo_enabled "updates-testing" 1
     else
-        sudo dnf config-manager setopt "*-testing.enabled=0" 2>/dev/null \
-            || sudo dnf config-manager --set-disabled "*-testing" 2>/dev/null || true
+        set_dnf_repo_enabled "*-testing" 0
     fi
 
     if repo_enabled "vscodium"; then
         ensure_vscodium_dnf_repo
+    else
+        disable_vscodium_dnf_repo
     fi
 
     sudo dnf upgrade --refresh -y

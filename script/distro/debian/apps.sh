@@ -83,54 +83,8 @@ distro_apply_apps() {
     install_selected_flatpaks
 }
 
-distro_install_gnome() {
-    echo "==> Installing minimal GNOME desktop on Debian..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-        gdm3 gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-        gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk \
-        gvfs-backends gvfs-fuse network-manager-gnome nautilus file-roller \
-        gnome-text-editor gnome-calculator gnome-software gnome-tweaks \
-        gnome-shell-extension-prefs dconf-cli libglib2.0-bin gir1.2-gtop-2.0 lm-sensors
-    sudo systemctl enable gdm3 2>/dev/null || sudo systemctl enable gdm 2>/dev/null || true
-    "$ROOT_DIR/script/common/gnome-config.sh"
-}
-
-distro_install_cockpit() {
-    echo "==> Installing Cockpit on Debian..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-        cockpit cockpit-storaged cockpit-networkmanager udisks2
-    "$ROOT_DIR/script/common/cockpit-config.sh"
-}
-
-distro_install_cli() {
-    echo "==> Installing CLI tools (Fastfetch, Kitty, Zsh) on Debian..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-        fastfetch kitty fontconfig zsh zsh-autosuggestions zsh-syntax-highlighting
-    "$ROOT_DIR/script/common/cli-config.sh"
-}
-
-distro_install_zram() {
-    echo "==> Installing zRAM generator on Debian..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y systemd-zram-generator
-    "$ROOT_DIR/script/common/zram-config.sh"
-}
-
 distro_verify_apps() {
     ensure_repo_context
-
-    if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native \
-            "gdm3|gdm" gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-            gnome-keyring gnome-backgrounds xdg-desktop-portal-gnome xdg-user-dirs-gtk \
-            gvfs-backends gvfs-fuse network-manager-gnome nautilus file-roller \
-            gnome-text-editor gnome-calculator gnome-software \
-            gnome-tweaks gnome-shell-extension-prefs dconf-cli \
-            libglib2.0-bin gir1.2-gtop-2.0 lm-sensors
-    fi
-
-    if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native cockpit cockpit-storaged cockpit-networkmanager udisks2
-    fi
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
         if app_verifies "flatseal"; then register_expected_native flatseal; fi
@@ -150,23 +104,11 @@ distro_verify_apps() {
         fi
         verify_extra_and_flatpak_apps
     fi
-
-    if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-        register_expected_native systemd-zram-generator
-    fi
-
-    if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native fastfetch kitty fontconfig zsh
-    fi
 }
 
 case "${1:-}" in
-    --menu)    run_apps_menu ;;
-    --gnome)   set -euo pipefail; distro_install_gnome ;;
-    --cockpit) set -euo pipefail; distro_install_cockpit ;;
-    --cli)     set -euo pipefail; distro_install_cli ;;
-    --zram)    set -euo pipefail; distro_install_zram ;;
-    --verify)  distro_verify_apps ;;
+    --menu)   run_apps_menu ;;
+    --verify) distro_verify_apps ;;
     *)
         if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             set -euo pipefail

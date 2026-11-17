@@ -10,8 +10,8 @@ distro_init_apps() {
         nv_default=1
     fi
 
-    if repo_enabled "rpmfusion-nonfree-tainted" && repo_enabled "rpmfusion-nonfree"; then
-        register_app "nvidia-open" "rpmfusion-nonfree-tainted" "NVIDIA Open Kernel Module driver (akmod-nvidia-open)" "$nv_default"
+    if repo_enabled "rpmfusion-nonfree"; then
+        register_app "nvidia-open" "rpmfusion-nonfree" "NVIDIA Open Kernel Module driver (akmod-nvidia)" "$nv_default"
     fi
     if repo_enabled "rpmfusion-free"; then
         register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & Freeworld VA-API (ffmpeg, mesa-va-drivers-freeworld)" 1
@@ -65,7 +65,7 @@ distro_apply_apps() {
         if [ "${GPU_CHOICE:-4}" != "1" ]; then
             native_pkgs+=(kernel-devel kernel-headers kmodtool akmods)
         fi
-        native_pkgs+=(akmod-nvidia-open)
+        native_pkgs+=(akmod-nvidia)
     fi
     if app_enabled "fs-tools"; then
         native_pkgs+=(util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs)
@@ -85,50 +85,8 @@ distro_apply_apps() {
     install_selected_flatpaks
 }
 
-distro_install_gnome() {
-    echo "==> Installing minimal GNOME desktop on Fedora..."
-    sudo dnf install -y \
-        gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-        gnome-keyring xdg-desktop-portal-gnome xdg-user-dirs-gtk nautilus file-roller \
-        gnome-text-editor gnome-calculator gnome-software gnome-tweaks \
-        gnome-extensions-app libgtop2 lm_sensors
-    sudo systemctl enable gdm
-    "$ROOT_DIR/script/common/gnome-config.sh"
-}
-
-distro_install_cockpit() {
-    echo "==> Installing Cockpit on Fedora..."
-    sudo dnf install -y \
-        cockpit cockpit-storaged cockpit-networkmanager cockpit-selinux udisks2
-    "$ROOT_DIR/script/common/cockpit-config.sh"
-}
-
-distro_install_cli() {
-    echo "==> Installing CLI tools (Fastfetch, Kitty, Zsh) on Fedora..."
-    sudo dnf install -y \
-        fastfetch kitty fontconfig zsh zsh-autosuggestions zsh-syntax-highlighting
-    "$ROOT_DIR/script/common/cli-config.sh"
-}
-
-distro_install_zram() {
-    echo "==> Installing zRAM generator on Fedora..."
-    sudo dnf install -y zram-generator
-    "$ROOT_DIR/script/common/zram-config.sh"
-}
-
 distro_verify_apps() {
     ensure_repo_context
-
-    if [[ "${INSTALL_GNOME:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native \
-            gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
-            nautilus file-roller gnome-text-editor gnome-calculator \
-            gnome-software gnome-tweaks gnome-extensions-app libgtop2 lm_sensors
-    fi
-
-    if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native cockpit cockpit-storaged cockpit-networkmanager cockpit-selinux udisks2
-    fi
 
     if [[ "${INSTALL_APPS:-Y}" =~ ^[Yy]$ ]]; then
         if app_verifies "vscodium" && repo_enabled "vscodium"; then register_expected_native "codium|vscodium"; fi
@@ -139,7 +97,7 @@ distro_verify_apps() {
         if app_verifies "tailscale"; then register_expected_native tailscale; fi
         if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
         if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "libdvdcss";    then register_expected_native libdvdcss; fi
-        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "nvidia-open";  then register_expected_native akmod-nvidia-open; fi
+        if [ "${APPS_MENU_DONE:-0}" = "1" ] && app_enabled "nvidia-open";  then register_expected_native "akmod-nvidia|akmod-nvidia-open"; fi
 
         if app_verifies "fs-tools"; then
             register_expected_native \
@@ -149,23 +107,11 @@ distro_verify_apps() {
 
         verify_extra_and_flatpak_apps
     fi
-
-    if [ "${ZRAM_CHOICE:-5}" != "5" ] && [ -n "${ZRAM_SIZE:-}" ]; then
-        register_expected_native zram-generator
-    fi
-
-    if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
-        register_expected_native fastfetch kitty fontconfig zsh
-    fi
 }
 
 case "${1:-}" in
-    --menu)    run_apps_menu ;;
-    --gnome)   set -euo pipefail; distro_install_gnome ;;
-    --cockpit) set -euo pipefail; distro_install_cockpit ;;
-    --cli)     set -euo pipefail; distro_install_cli ;;
-    --zram)    set -euo pipefail; distro_install_zram ;;
-    --verify)  distro_verify_apps ;;
+    --menu)   run_apps_menu ;;
+    --verify) distro_verify_apps ;;
     *)
         if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             set -euo pipefail

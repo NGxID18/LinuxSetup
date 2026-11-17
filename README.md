@@ -25,10 +25,11 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
 
 ## Interactive Workflow
 
-1. **Repository Menu**: Toggle official, third-party, community, AUR helper, and Flathub repositories per distro.
-2. **GPU Driver Menu**: Automatically adapts available driver options (e.g., `akmod-nvidia-open` vs `akmod-nvidia`) to the selected repositories.
-3. **Applications Menu**: Displays repository-gated native presets, universal Flathub presets, and live package search (`/ <query>`, `sf <query>`).
-4. **System & CLI Modules**: Optional minimal GNOME desktop, Cockpit Web Console, CLI stack (Fastfetch, Kitty, Zsh), zRAM swap, and installation verification.
+1. **Repository Menu**: Auto-detects active system repositories (with two-way sync) and lets you toggle official, third-party, community, AUR helper, and Flathub repositories per distro.
+2. **GPU Driver Menu**: Modular per-vendor driver scripts (`driver/{nvidia,amd,intel}.sh`) that automatically adapt available options to the selected repositories.
+3. **Desktop Environment / GUI Menu**: Extensible menu auto-discovered from `de/*.sh` (currently minimal GNOME Desktop & Wallpapers).
+4. **Applications Menu**: Displays repository-gated native presets, universal Flathub presets, and live package search (`/ <query>`, `sf <query>`).
+5. **System & CLI Modules**: Modular `system/{cockpit,cli,zram}.sh` scripts for Cockpit Web Console, CLI stack (Fastfetch, Kitty, Zsh), zRAM swap, and installation verification.
 
 ## Structure
 
@@ -53,12 +54,17 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
     │   ├── zram-config.sh
     │   └── 5060tune.sh
     └── distro/
-        ├── almalinux/{repo.sh,driver.sh,apps.sh}
-        ├── arch/{repo.sh,driver.sh,apps.sh}
-        ├── cachyos/{repo.sh,driver.sh,apps.sh}
-        ├── debian/{repo.sh,driver.sh,apps.sh}
-        ├── fedora/{repo.sh,driver.sh,apps.sh}
-        ├── leap/{repo.sh,driver.sh,apps.sh}
-        ├── tumbleweed/{repo.sh,driver.sh,apps.sh}
-        └── ubuntu/{repo.sh,driver.sh,apps.sh}
+        └── <almalinux|arch|cachyos|debian|fedora|leap|tumbleweed|ubuntu>/
+            ├── repo.sh
+            ├── apps.sh
+            ├── driver/
+            │   ├── nvidia.sh
+            │   ├── amd.sh
+            │   └── intel.sh
+            ├── de/
+            │   └── gnome.sh
+            └── system/
+                ├── cockpit.sh
+                ├── cli.sh
+                └── zram.sh
 ```

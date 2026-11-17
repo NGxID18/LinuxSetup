@@ -11,10 +11,36 @@ init_flatpak_apps() {
     fi
 }
 
+is_flathub_active() {
+    if command -v flatpak >/dev/null 2>&1; then
+        if flatpak remotes --columns=name 2>/dev/null | awk '{print $1}' | grep -Fxq "flathub"; then
+            return 0
+        fi
+        return 1
+    fi
+
+    local cfg
+    for cfg in /var/lib/flatpak/repo/config "$HOME/.local/share/flatpak/repo/config"; do
+        [ -f "$cfg" ] || continue
+        if grep -qs '^\[remote "flathub"\]' "$cfg" 2>/dev/null; then
+            if awk '/^\[remote "flathub"\]/{f=1; next} /^\[/{f=0} f && /xa\.disable=true/{exit 1}' "$cfg" 2>/dev/null; then
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
 setup_flathub_remote() {
-    if repo_enabled "flathub" && command -v flatpak >/dev/null 2>&1; then
+    command -v flatpak >/dev/null 2>&1 || return 0
+    if repo_enabled "flathub"; then
         echo "==> Adding Flathub stable remote..."
         sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+        sudo flatpak remote-modify --enable flathub 2>/dev/null || true
+    elif flatpak remotes --columns=name 2>/dev/null | awk '{print $1}' | grep -Fxq "flathub"; then
+        echo "==> Disabling Flathub remote..."
+        sudo flatpak remote-modify --disable flathub 2>/dev/null || true
+        flatpak remote-modify --user --disable flathub 2>/dev/null || true
     fi
 }
 
