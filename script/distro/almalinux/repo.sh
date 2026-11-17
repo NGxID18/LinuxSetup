@@ -6,17 +6,17 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="baseos, appstream"
-    register_repo "extras"            "Official"    "Supplementary release packages (required for EPEL/ELRepo)" "$(repo_active_flag is_dnf_repo_active '^(extras|almalinux-extras|rocky-extras)$')"
-    register_repo "crb"               "Official"    "CodeReady Builder (developer libraries & headers)"          "$(repo_active_flag is_dnf_repo_active '^(crb|powertools|almalinux-crb|rocky-crb)$')"
-    register_repo "epel"              "Community"   "Extra Packages for Enterprise Linux (epel-release)"         "$(repo_active_flag is_dnf_repo_active '^epel$')"
-    register_repo "rpmfusion-free"    "Community"   "RPM Fusion Free (FFmpeg, VLC, open-source multimedia)"      "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"
-    register_repo "rpmfusion-nonfree" "Community"   "RPM Fusion Nonfree (NVIDIA drivers, codecs, Steam)"         "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"
-    register_repo "plus"              "Official"    "AlmaLinux/EL Plus extended packages"                        "$(repo_active_flag is_dnf_repo_active '^(plus|almalinux-plus|rocky-plus)$')"
-    register_repo "synergy"           "Community"   "AlmaLinux Synergy community packages"                       "$(repo_active_flag is_dnf_repo_active '^(synergy|almalinux-synergy)$')"
-    register_repo "elrepo"            "Third-Party" "ELRepo hardware drivers & mainline/LTS kernels"             "$(repo_active_flag is_dnf_repo_active '^elrepo$')"
-    register_repo "vscodium"          "Third-Party" "VSCodium official RPM repository"                           "$(repo_active_flag is_dnf_repo_active '^vscodium$')"
-    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                          "$(repo_active_flag is_dnf_repo_active '^tailscale')"
-    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"
+    register_repo "extras"            "Official"    "Supplementary release packages (required for EPEL/ELRepo)" "$(repo_active_flag is_dnf_repo_active '^(extras|almalinux-extras|rocky-extras)$')" 1
+    register_repo "crb"               "Official"    "CodeReady Builder (developer libraries & headers)"          "$(repo_active_flag is_dnf_repo_active '^(crb|powertools|almalinux-crb|rocky-crb)$')"   1
+    register_repo "epel"              "Community"   "Extra Packages for Enterprise Linux (epel-release)"         "$(repo_active_flag is_dnf_repo_active '^epel$')"                                         1
+    register_repo "rpmfusion-free"    "Community"   "RPM Fusion Free (FFmpeg, VLC, open-source multimedia)"      "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"                    1
+    register_repo "rpmfusion-nonfree" "Community"   "RPM Fusion Nonfree (NVIDIA drivers, codecs, Steam)"         "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"                 1
+    register_repo "plus"              "Official"    "AlmaLinux/EL Plus extended packages"                        "$(repo_active_flag is_dnf_repo_active '^(plus|almalinux-plus|rocky-plus)$')"             0
+    register_repo "synergy"           "Community"   "AlmaLinux Synergy community packages"                       "$(repo_active_flag is_dnf_repo_active '^(synergy|almalinux-synergy)$')"                  0
+    register_repo "elrepo"            "Third-Party" "ELRepo hardware drivers & mainline/LTS kernels"             "$(repo_active_flag is_dnf_repo_active '^elrepo$')"                                       0
+    register_repo "vscodium"          "Third-Party" "VSCodium official RPM repository"                           "$(repo_active_flag is_dnf_repo_active '^vscodium$')"                                     1
+    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                          "$(repo_active_flag is_dnf_repo_active '^tailscale')"                                     1
+    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"                                                   1
 }
 
 distro_apply_repos() {

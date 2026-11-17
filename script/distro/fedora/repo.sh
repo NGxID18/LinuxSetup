@@ -6,15 +6,15 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="fedora, updates"
-    register_repo "rpmfusion-free"            "Community"   "RPM Fusion Free (multimedia codecs & FOSS tools)"            "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"
-    register_repo "rpmfusion-nonfree"         "Community"   "RPM Fusion Nonfree (NVIDIA drivers, Steam, codecs)"          "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"
-    register_repo "rpmfusion-free-tainted"    "Community"   "RPM Fusion Free Tainted (libdvdcss & patent-restricted FOSS)" "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free-tainted$')"
-    register_repo "rpmfusion-nonfree-tainted" "Community"   "RPM Fusion Nonfree Tainted (restricted firmware & drivers)"  "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree-tainted$')"
-    register_repo "fedora-cisco-openh264"     "Official"    "Cisco OpenH264 codec for browsers & GStreamer"              "$(repo_active_flag is_dnf_repo_active '^fedora-cisco-openh264$')"
-    register_repo "terra"                     "Third-Party" "Fyra Labs Terra rolling community repository"                "$(repo_active_flag is_dnf_repo_active '^terra')"
-    register_repo "updates-testing"           "Official"    "Fedora staging updates testing repository (*-testing)"       "$(repo_active_flag is_dnf_repo_active '^updates-testing$')"
-    register_repo "vscodium"                  "Third-Party" "VSCodium official RPM repository"                            "$(repo_active_flag is_dnf_repo_active '^vscodium$')"
-    register_repo "flathub"                   "Universal"   "Flathub Flatpak application repository"                      "$(repo_active_flag is_flathub_active)"
+    register_repo "rpmfusion-free"            "Community"   "RPM Fusion Free (multimedia codecs & FOSS tools)"            "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"      1
+    register_repo "rpmfusion-nonfree"         "Community"   "RPM Fusion Nonfree (NVIDIA drivers, Steam, codecs)"          "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"   1
+    register_repo "rpmfusion-free-tainted"    "Community"   "RPM Fusion Free Tainted (libdvdcss & patent-restricted FOSS)" "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free-tainted$')"         0
+    register_repo "rpmfusion-nonfree-tainted" "Community"   "RPM Fusion Nonfree Tainted (restricted firmware & drivers)"  "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree-tainted$')"      0
+    register_repo "fedora-cisco-openh264"     "Official"    "Cisco OpenH264 codec for browsers & GStreamer"              "$(repo_active_flag is_dnf_repo_active '^fedora-cisco-openh264$')"         1
+    register_repo "terra"                     "Third-Party" "Fyra Labs Terra rolling community repository"                "$(repo_active_flag is_dnf_repo_active '^terra')"                         0
+    register_repo "updates-testing"           "Official"    "Fedora staging updates testing repository (*-testing)"       "$(repo_active_flag is_dnf_repo_active '^updates-testing$')"               0
+    register_repo "vscodium"                  "Third-Party" "VSCodium official RPM repository"                            "$(repo_active_flag is_dnf_repo_active '^vscodium$')"                      1
+    register_repo "flathub"                   "Universal"   "Flathub Flatpak application repository"                      "$(repo_active_flag is_flathub_active)"                                   1
 }
 
 distro_apply_repos() {

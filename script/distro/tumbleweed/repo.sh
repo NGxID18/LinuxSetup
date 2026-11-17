@@ -13,13 +13,19 @@ distro_init_repos() {
         def_packman_full=1
     fi
 
-    register_repo "repo-non-oss"       "Official"    "Non-OSS proprietary packages & firmware"                "$(repo_active_flag is_zypper_repo_active 'non-oss' 'debug|source')"
-    register_repo "repo-openh264"      "Official"    "Cisco OpenH264 codec repository"                        "$(repo_active_flag is_zypper_repo_active 'openh264' 'debug|source')"
-    register_repo "packman-essentials" "Community"   "Packman Essentials (core multimedia codecs)"            "$def_packman_ess"
-    register_repo "packman-full"       "Community"   "Full Packman repository (all multimedia apps & codecs)" "$def_packman_full"
-    register_repo "nvidia"             "Third-Party" "Official NVIDIA Tumbleweed driver repository"           "$(repo_active_flag is_zypper_repo_active 'nvidia' 'debug|source')"
-    register_repo "vscodium"           "Third-Party" "VSCodium official RPM repository"                       "$(repo_active_flag is_zypper_repo_active 'vscodium' 'debug|source')"
-    register_repo "flathub"            "Universal"   "Flathub Flatpak application repository"                 "$(repo_active_flag is_flathub_active)"
+    local def_nvidia rec_nvidia=0
+    def_nvidia="$(repo_active_flag is_zypper_repo_active 'nvidia' 'debug|source')"
+    if [ "$def_nvidia" -eq 1 ] || has_nvidia_gpu; then
+        rec_nvidia=1
+    fi
+
+    register_repo "repo-non-oss"       "Official"    "Non-OSS proprietary packages & firmware"                "$(repo_active_flag is_zypper_repo_active 'non-oss' 'debug|source')"  1
+    register_repo "repo-openh264"      "Official"    "Cisco OpenH264 codec repository"                        "$(repo_active_flag is_zypper_repo_active 'openh264' 'debug|source')" 1
+    register_repo "packman-essentials" "Community"   "Packman Essentials (core multimedia codecs)"            "$def_packman_ess"                                                    1
+    register_repo "packman-full"       "Community"   "Full Packman repository (all multimedia apps & codecs)" "$def_packman_full"                                                   0
+    register_repo "nvidia"             "Third-Party" "Official NVIDIA Tumbleweed driver repository"           "$def_nvidia"                                                         "$rec_nvidia"
+    register_repo "vscodium"           "Third-Party" "VSCodium official RPM repository"                       "$(repo_active_flag is_zypper_repo_active 'vscodium' 'debug|source')" 1
+    register_repo "flathub"            "Universal"   "Flathub Flatpak application repository"                 "$(repo_active_flag is_flathub_active)"                               1
 }
 
 distro_apply_repos() {

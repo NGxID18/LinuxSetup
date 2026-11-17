@@ -45,7 +45,13 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
     ├── setup.sh
     ├── verify.sh
     ├── lib/
-    │   └── tui.sh
+    │   ├── tui.sh
+    │   ├── env.sh
+    │   ├── hardware.sh
+    │   ├── repo-detect.sh
+    │   ├── menu-repo.sh
+    │   ├── menu-system.sh
+    │   └── menu-apps.sh
     ├── common/
     │   ├── flatpak.sh
     │   ├── gnome-config.sh

@@ -74,7 +74,7 @@ if [ "$DE_CHOICE" != "none" ] && [ -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ]; then
     "$DISTRO_DIR/de/${DE_CHOICE}.sh"
 fi
 
-if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
+if [[ "${INSTALL_COCKPIT:-N}" =~ ^[Yy]$ ]]; then
     "$DISTRO_DIR/system/cockpit.sh"
 fi
 

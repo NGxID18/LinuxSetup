@@ -6,19 +6,21 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="core, extra"
-    local def_paru=0 def_yay=0
+    local def_paru=0 def_yay=0 rec_paru=1 rec_yay=0
     if command -v paru >/dev/null 2>&1; then
         def_paru=1
     elif command -v yay >/dev/null 2>&1; then
         def_yay=1
+        rec_paru=0
+        rec_yay=1
     fi
 
-    register_repo "multilib"    "Official"    "32-bit libraries (Steam, Wine, 32-bit GPU libraries)"       "$(repo_active_flag is_pacman_repo_active 'multilib')"
-    register_repo "chaotic-aur" "Third-Party" "Pre-compiled binary repository for popular AUR packages"    "$(repo_active_flag is_pacman_repo_active 'chaotic-aur')"
-    register_repo "testing"     "Official"    "Staging testing repositories (core-testing, extra-testing)" "$(repo_active_flag is_pacman_repo_active '(core|extra|multilib)-testing')"
-    register_repo "aur-paru"    "AUR Helper"  "Install Paru (Rust-based AUR helper)"                       "$def_paru"
-    register_repo "aur-yay"     "AUR Helper"  "Install Yay (Go-based AUR helper)"                          "$def_yay"
-    register_repo "flathub"     "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"
+    register_repo "multilib"    "Official"    "32-bit libraries (Steam, Wine, 32-bit GPU libraries)"       "$(repo_active_flag is_pacman_repo_active 'multilib')"                     1
+    register_repo "chaotic-aur" "Third-Party" "Pre-compiled binary repository for popular AUR packages"    "$(repo_active_flag is_pacman_repo_active 'chaotic-aur')"                  0
+    register_repo "testing"     "Official"    "Staging testing repositories (core-testing, extra-testing)" "$(repo_active_flag is_pacman_repo_active '(core|extra|multilib)-testing')" 0
+    register_repo "aur-paru"    "AUR Helper"  "Install Paru (Rust-based AUR helper)"                       "$def_paru"                                                                 "$rec_paru"
+    register_repo "aur-yay"     "AUR Helper"  "Install Yay (Go-based AUR helper)"                          "$def_yay"                                                                  "$rec_yay"
+    register_repo "flathub"     "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"                                     1
 }
 
 distro_apply_repos() {

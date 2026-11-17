@@ -7,13 +7,13 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 distro_init_repos() {
     REPO_CORE="main, main-updates, debian-security"
     local codename="${DISTRO_CODENAME:-trixie}"
-    register_repo "contrib"           "Official"    "DFSG-free packages that depend on non-free software" "$(repo_active_flag is_apt_component_active 'contrib')"
-    register_repo "non-free"          "Official"    "Proprietary software & drivers (NVIDIA, etc.)"       "$(repo_active_flag is_apt_component_active 'non-free')"
-    register_repo "non-free-firmware" "Official"    "Hardware firmware & CPU microcode binaries"          "$(repo_active_flag is_apt_component_active 'non-free-firmware')"
-    register_repo "backports"         "Official"    "Newer backported packages (${codename}-backports)"   "$(repo_active_flag is_apt_repo_active "${codename}-backports")"
-    register_repo "vscodium"          "Third-Party" "VSCodium official Debian APT repository"             "$(repo_active_flag is_apt_repo_active 'vscodium')"
-    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                   "$(repo_active_flag is_apt_repo_active 'tailscale')"
-    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"              "$(repo_active_flag is_flathub_active)"
+    register_repo "contrib"           "Official"    "DFSG-free packages that depend on non-free software" "$(repo_active_flag is_apt_component_active 'contrib')"           1
+    register_repo "non-free"          "Official"    "Proprietary software & drivers (NVIDIA, etc.)"       "$(repo_active_flag is_apt_component_active 'non-free')"          1
+    register_repo "non-free-firmware" "Official"    "Hardware firmware & CPU microcode binaries"          "$(repo_active_flag is_apt_component_active 'non-free-firmware')" 1
+    register_repo "backports"         "Official"    "Newer backported packages (${codename}-backports)"   "$(repo_active_flag is_apt_repo_active "${codename}-backports")"   0
+    register_repo "vscodium"          "Third-Party" "VSCodium official Debian APT repository"             "$(repo_active_flag is_apt_repo_active 'vscodium')"               1
+    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                   "$(repo_active_flag is_apt_repo_active 'tailscale')"              1
+    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"              "$(repo_active_flag is_flathub_active)"                           1
 }
 
 distro_apply_repos() {

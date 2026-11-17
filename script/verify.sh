@@ -8,7 +8,7 @@ ensure_repo_context
 
 GPU_CHOICE="${GPU_CHOICE:-4}"
 INSTALL_GNOME="${INSTALL_GNOME:-Y}"
-INSTALL_COCKPIT="${INSTALL_COCKPIT:-Y}"
+INSTALL_COCKPIT="${INSTALL_COCKPIT:-N}"
 INSTALL_APPS="${INSTALL_APPS:-Y}"
 INSTALL_CLI="${INSTALL_CLI:-Y}"
 ZRAM_CHOICE="${ZRAM_CHOICE:-5}"
@@ -28,7 +28,7 @@ if [ "$DE_CHOICE" != "none" ] && [ -f "$DISTRO_DIR/de/${DE_CHOICE}.sh" ]; then
     source "$DISTRO_DIR/de/${DE_CHOICE}.sh" --verify
 fi
 
-if [[ "${INSTALL_COCKPIT:-Y}" =~ ^[Yy]$ ]]; then
+if [[ "${INSTALL_COCKPIT:-N}" =~ ^[Yy]$ ]]; then
     source "$DISTRO_DIR/system/cockpit.sh" --verify
 fi
 

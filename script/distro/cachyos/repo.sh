@@ -6,21 +6,31 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_repos() {
     REPO_CORE="cachyos, core, extra"
-    local def_paru=0 def_yay=0
+    local def_paru=0 def_yay=0 rec_paru=1 rec_yay=0
     if command -v paru >/dev/null 2>&1; then
         def_paru=1
     elif command -v yay >/dev/null 2>&1; then
         def_yay=1
+        rec_paru=0
+        rec_yay=1
     fi
 
-    register_repo "cachyos-v3"     "Optimization" "x86-64-v3 (AVX2/FMA) CPU-optimized packages"              "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v3')"
-    register_repo "cachyos-v4"     "Optimization" "x86-64-v4 (AVX-512) CPU-optimized packages"               "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v4')"
-    register_repo "cachyos-znver4" "Optimization" "AMD Zen 4 / Zen 5 architecture-optimized packages"        "$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-znver4')"
-    register_repo "multilib"       "Official"     "32-bit support repository ([multilib])"                   "$(repo_active_flag is_pacman_repo_active 'multilib')"
-    register_repo "chaotic-aur"    "Third-Party"  "Pre-compiled binary repository for popular AUR packages"  "$(repo_active_flag is_pacman_repo_active 'chaotic-aur')"
-    register_repo "aur-paru"       "AUR Helper"   "Install Paru (Rust-based AUR helper)"                     "$def_paru"
-    register_repo "aur-yay"        "AUR Helper"   "Install Yay (Go-based AUR helper)"                        "$def_yay"
-    register_repo "flathub"        "Universal"    "Flathub Flatpak application repository"                   "$(repo_active_flag is_flathub_active)"
+    local def_v3 def_v4 def_znver4 rec_v3=0
+    def_v3="$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v3')"
+    def_v4="$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-v4')"
+    def_znver4="$(repo_active_flag is_pacman_repo_active 'cachyos(-core|-extra)?-znver4')"
+    if [ "$def_v3" -eq 1 ] || { [ "$def_v4" -eq 0 ] && [ "$def_znver4" -eq 0 ]; }; then
+        rec_v3=1
+    fi
+
+    register_repo "cachyos-v3"     "Optimization" "x86-64-v3 (AVX2/FMA) CPU-optimized packages"              "$def_v3"                                              "$rec_v3"
+    register_repo "cachyos-v4"     "Optimization" "x86-64-v4 (AVX-512) CPU-optimized packages"               "$def_v4"                                              "$def_v4"
+    register_repo "cachyos-znver4" "Optimization" "AMD Zen 4 / Zen 5 architecture-optimized packages"        "$def_znver4"                                          "$def_znver4"
+    register_repo "multilib"       "Official"     "32-bit support repository ([multilib])"                   "$(repo_active_flag is_pacman_repo_active 'multilib')" 1
+    register_repo "chaotic-aur"    "Third-Party"  "Pre-compiled binary repository for popular AUR packages"  "$(repo_active_flag is_pacman_repo_active 'chaotic-aur')" 0
+    register_repo "aur-paru"       "AUR Helper"   "Install Paru (Rust-based AUR helper)"                     "$def_paru"                                            "$rec_paru"
+    register_repo "aur-yay"        "AUR Helper"   "Install Yay (Go-based AUR helper)"                        "$def_yay"                                             "$rec_yay"
+    register_repo "flathub"        "Universal"    "Flathub Flatpak application repository"                   "$(repo_active_flag is_flathub_active)"                1
 }
 
 distro_apply_repos() {

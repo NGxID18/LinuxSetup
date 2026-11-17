@@ -12,14 +12,14 @@ distro_init_repos() {
         def_purge_snapd=1
     fi
 
-    register_repo "restricted"  "Official"    "Canonical-supported proprietary hardware drivers"      "$(repo_active_flag is_apt_component_active 'restricted')"
-    register_repo "universe"    "Official"    "Community-maintained free & open-source software"      "$(repo_active_flag is_apt_component_active 'universe')"
-    register_repo "multiverse"  "Official"    "Copyright/patent-restricted software & codecs"         "$(repo_active_flag is_apt_component_active 'multiverse')"
-    register_repo "backports"   "Official"    "Newer backported packages (${codename}-backports)"     "$(repo_active_flag is_apt_repo_active "${codename}-backports")"
-    register_repo "vscodium"    "Third-Party" "VSCodium official Ubuntu APT repository"               "$(repo_active_flag is_apt_repo_active 'vscodium')"
-    register_repo "tailscale"   "Third-Party" "Tailscale official VPN repository"                     "$(repo_active_flag is_apt_repo_active 'tailscale')"
-    register_repo "purge-snapd" "System"      "Purge Snapd completely & block via APT pinning"        "$def_purge_snapd"
-    register_repo "flathub"     "Universal"   "Flathub Flatpak application repository"                "$(repo_active_flag is_flathub_active)"
+    register_repo "restricted"  "Official"    "Canonical-supported proprietary hardware drivers"      "$(repo_active_flag is_apt_component_active 'restricted')"         1
+    register_repo "universe"    "Official"    "Community-maintained free & open-source software"      "$(repo_active_flag is_apt_component_active 'universe')"           1
+    register_repo "multiverse"  "Official"    "Copyright/patent-restricted software & codecs"         "$(repo_active_flag is_apt_component_active 'multiverse')"         1
+    register_repo "backports"   "Official"    "Newer backported packages (${codename}-backports)"     "$(repo_active_flag is_apt_repo_active "${codename}-backports")"   0
+    register_repo "vscodium"    "Third-Party" "VSCodium official Ubuntu APT repository"               "$(repo_active_flag is_apt_repo_active 'vscodium')"               1
+    register_repo "tailscale"   "Third-Party" "Tailscale official VPN repository"                     "$(repo_active_flag is_apt_repo_active 'tailscale')"              1
+    register_repo "purge-snapd" "System"      "Purge Snapd completely & block via APT pinning"        "$def_purge_snapd"                                                1
+    register_repo "flathub"     "Universal"   "Flathub Flatpak application repository"                "$(repo_active_flag is_flathub_active)"                           1
 }
 
 distro_apply_repos() {
