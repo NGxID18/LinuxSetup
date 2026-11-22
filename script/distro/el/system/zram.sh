@@ -4,7 +4,7 @@ ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}
 source "$ROOT_DIR/script/lib/tui.sh"
 
 system_zram_install() {
-    echo "==> Installing zRAM generator on AlmaLinux/EL..."
+    echo "==> Installing zRAM generator on Enterprise Linux..."
     sudo dnf install -y zram-generator
     "$ROOT_DIR/script/common/zram-config.sh"
 }

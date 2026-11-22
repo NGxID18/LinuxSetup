@@ -6,7 +6,7 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
     if repo_enabled "rpmfusion-free"; then
-        register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & FFmpeg (ffmpeg)" 1
+        register_app "codecs-extra" "rpmfusion-free" "Full FFmpeg & multimedia codecs from RPM Fusion (ffmpeg)" 1
     fi
     if repo_enabled "rpmfusion-free-tainted"; then
         register_app "libdvdcss" "rpmfusion-free-tainted" "Encrypted DVD playback library (libdvdcss)" 0
@@ -51,13 +51,15 @@ distro_apply_apps() {
     if app_enabled "flatseal";     then native_pkgs+=(flatseal); fi
     if app_enabled "snapper";      then native_pkgs+=(snapper); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
-    if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
     if app_enabled "libdvdcss";    then native_pkgs+=(libdvdcss); fi
     if app_enabled "fs-tools"; then
         native_pkgs+=(util-linux udisks2 udisks2-btrfs udisks2-lvm2 btrfs-progs lvm2 ntfs-3g exfatprogs xfsprogs dosfstools e2fsprogs)
     fi
 
     install_pkg_list_with_fallback dnf "${native_pkgs[@]}"
+    if app_enabled "codecs-extra" && repo_enabled "rpmfusion-free"; then
+        install_rpmfusion_ffmpeg
+    fi
     if [ "${#extra_native[@]}" -gt 0 ]; then
         install_pkg_list_with_fallback dnf "${extra_native[@]}"
     fi
@@ -81,7 +83,9 @@ distro_verify_apps() {
         if app_enabled "flatseal";     then register_expected_native flatseal; fi
         if app_enabled "snapper";      then register_expected_native snapper; fi
         if app_enabled "tailscale";    then register_expected_native tailscale; fi
-        if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
+        if app_enabled "codecs-extra" && repo_enabled "rpmfusion-free"; then
+            register_expected_native ffmpeg ffmpeg-libs
+        fi
         if app_enabled "libdvdcss";    then register_expected_native libdvdcss; fi
 
         if app_enabled "fs-tools"; then

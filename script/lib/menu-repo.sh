@@ -113,19 +113,19 @@ _repo_apply_preset() {
                     *)                          state[$i]=1 ;;
                 esac
             done
-            status_msg="Semua repository diaktifkan."
+            status_msg="All repositories enabled."
             ;;
         none)
             for ((i = 0; i < count; i++)); do state[$i]=0; done
-            status_msg="Semua repository tambahan dinonaktifkan."
+            status_msg="All optional repositories disabled."
             ;;
         rec)
             state=("${REPO_RECOMMENDED[@]}")
-            status_msg="Setelan Rekomendasi Pemula (*Rec) diterapkan!"
+            status_msg="Recommended preset (*Rec) applied!"
             ;;
         default)
             state=("${REPO_DEFAULTS[@]}")
-            status_msg="Direset kembali ke repository aktif di sistem Anda."
+            status_msg="Reset to currently active system repositories."
             ;;
     esac
 }
@@ -159,8 +159,8 @@ run_repo_menu() {
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
             printf '\e[1;37m  REPOSITORY SELECTION MENU (%s %s | %s)\e[0m\e[K\n' "${DISTRO^^}" "${DISTRO_VER}" "${PKG}"
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '  Legend : \e[1;32m[x]\e[0m Aktif  \e[90m[ ]\e[0m Nonaktif  \e[1;32m*Rec\e[0m Rekomendasi Pemula\e[K\n'
-            printf '  Core   : \e[36m%s\e[0m (selalu aktif)\e[K\n' "${REPO_CORE}"
+            printf '  Legend : \e[1;32m[x]\e[0m Enabled  \e[90m[ ]\e[0m Disabled  \e[1;32m*Rec\e[0m Recommended\e[K\n'
+            printf '  Core   : \e[36m%s\e[0m (always enabled)\e[K\n' "${REPO_CORE}"
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
             printf '    %-3s %-4s %-4s %-25s %-13s %s\e[K\n' "#" "Stat" "Rec" "Repository" "Category" "Description"
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
@@ -194,8 +194,8 @@ run_repo_menu() {
             else
                 printf '\e[K\n'
             fi
-            printf '  [↑/↓/j/k] Pilih  [Space] Centang/Lepas  [r] Rekomendasi Pemula\e[K\n'
-            printf '  [d] Reset Sistem [a] Semua  [n] Kosong  [?] Bantuan  [Enter/c] Simpan\e[K\n'
+            printf '  [↑/↓/j/k] Move   [Space] Toggle  [r] Recommended\e[K\n'
+            printf '  [d] Reset System [a] All  [n] None  [?] Help  [Enter/c] Save\e[K\n'
             printf '\e[1;36m========================================================================\e[0m\e[J'
 
             status_msg=""

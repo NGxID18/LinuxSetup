@@ -88,7 +88,7 @@ init_setup_defaults() {
     refresh_repo_dependent_defaults
 }
 
-apply_beginner_recommended_preset() {
+apply_recommended_preset() {
     detect_linux_env
     source "$DISTRO_DIR/repo.sh" ""
     apply_recommended_repos
@@ -112,48 +112,48 @@ _dashboard_item_help() {
     case "$1" in
         0)
             printf '%s\n' \
-                "Sumber unduhan paket & aplikasi. Tekan [Enter] untuk pilih manual," \
-                "atau tekan [r] untuk mengaktifkan repo rekomendasi (*Rec) otomatis."
+                "Package & app download sources. Press [Enter] to configure manually," \
+                "or press [r] to auto-enable all recommended (*Rec) repositories."
             ;;
         1)
             printf '%s\n' \
-                "Driver kartu grafis (NVIDIA/AMD/Intel) untuk game, layar & video." \
-                "Otomatis mendeteksi GPU yang terpasang di perangkat Anda."
+                "Graphics card drivers (NVIDIA/AMD/Intel) for gaming, display & video." \
+                "Automatically detects the GPU installed on your machine."
             ;;
         2)
             printf '%s\n' \
-                "Tampilan desktop grafis (GNOME Minimal + GDM login + wallpaper)." \
-                "Pilih Skip jika ini server tanpa layar atau sudah punya desktop."
+                "Graphical desktop environment (Minimal GNOME + GDM + wallpapers)." \
+                "Choose Skip for headless servers or if you already have a desktop."
             ;;
         3)
             printf '%s\n' \
-                "Panel admin server via browser (port 9090). [Space/Enter] untuk" \
-                "mengubah. Untuk PC/laptop harian disarankan tetap Disabled."
+                "Browser-based server admin panel (port 9090). Press [Space/Enter]" \
+                "to toggle. Recommended to keep Disabled on daily desktop/laptops."
             ;;
         4)
             printf '%s\n' \
-                "Pilih aplikasi harian (Steam, Discord, OBS, VSCodium, dll.) &" \
-                "cari aplikasi lain secara live. Tekan [Enter] untuk membuka."
+                "Pick daily apps (Steam, Discord, OBS, VSCodium, etc.) and live-search" \
+                "additional native/AUR/Flathub packages. Press [Enter] to open."
             ;;
         5)
             printf '%s\n' \
-                "Mempercantik terminal dengan Kitty, Fastfetch, JetBrainsMono Nerd" \
-                "Font, dan Zsh (autosuggestions + syntax highlighting)."
+                "Enhance your terminal with Kitty, Fastfetch, JetBrainsMono Nerd Font," \
+                "and Zsh (with autosuggestions & syntax highlighting)."
             ;;
         6)
             printf '%s\n' \
-                "Swap terkompresi cepat di dalam RAM (zstd) agar multitasking lancar." \
-                "Ukuran standar sudah disesuaikan otomatis dengan RAM fisik Anda."
+                "Fast compressed swap in RAM (zstd) for smoother multitasking." \
+                "Default size is automatically matched to your physical RAM."
             ;;
         7)
             printf '%s\n' \
-                "SUDAH SIAP? Tekan [Enter] di sini (atau tombol [i] kapan saja) untuk" \
-                "memulai proses instalasi & verifikasi otomatis sampai selesai."
+                "READY? Press [Enter] here (or press [i] anytime) to begin" \
+                "automated installation and post-install package verification."
             ;;
         *)
             printf '%s\n' \
-                "Batalkan dan keluar dari installer tanpa mengubah apa pun di sistem" \
-                "Anda (atau tekan [q] / [ESC] kapan saja)."
+                "Cancel and exit the installer without making any changes to your" \
+                "system (or press [q] / [ESC] anytime)."
             ;;
     esac
 }
@@ -243,7 +243,7 @@ run_setup_dashboard() {
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
             printf '\e[1;37m  LINUX PROVISIONING DASHBOARD (%s %s | %s)\e[0m\e[K\n' "${DISTRO^^}" "${DISTRO_VER}" "${PKG}"
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '  \e[1;32mTips Pemula:\e[0m Tekan \e[1;33m[r]\e[0m untuk Setelan Rekomendasi, lalu \e[1;33m[i]\e[0m untuk Install!\e[K\n'
+            printf '  \e[1;32mQuick Start:\e[0m Press \e[1;33m[r]\e[0m for Recommended Preset, then \e[1;33m[i]\e[0m to Install!\e[K\n'
             printf '  Hardware   : GPU: \e[36m%s\e[0m\e[K\n' "$(tui_truncate "$gpu_summary" 54)"
             printf '               RAM: \e[36m%s\e[0m\e[K\n' "${_REC_ZRAM_RAM_LABEL:-Unknown}"
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
@@ -271,7 +271,7 @@ run_setup_dashboard() {
             done
 
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  \e[1;36mINFO FITUR & PANDUAN:\e[0m\e[K\n'
+            printf '  \e[1;36mFEATURE INFO & GUIDE:\e[0m\e[K\n'
             printf '    %s\e[K\n' "$help_line1"
             printf '    %s\e[K\n' "$help_line2"
             if [ -n "$status_msg" ]; then
@@ -279,8 +279,8 @@ run_setup_dashboard() {
             else
                 printf '\e[K\n'
             fi
-            printf '  [↑/↓/j/k] Pilih  [Enter/Space] Buka/Toggle  [r] Rekomendasi Pemula\e[K\n'
-            printf '  [1-9] Lompat #   [i] Mulai Install          [?] Bantuan   [q/ESC] Keluar\e[K\n'
+            printf '  [↑/↓/j/k] Move   [Enter/Space] Open/Toggle  [r] Recommended Preset\e[K\n'
+            printf '  [1-9] Jump #     [i] Start Install          [?] Help      [q/ESC] Quit\e[K\n'
             printf '\e[1;36m========================================================================\e[0m\e[J'
 
             status_msg=""
@@ -293,8 +293,8 @@ run_setup_dashboard() {
                 END)         cursor=8; continue ;;
                 \?|h|H)      tui_show_help_modal "dashboard"; continue ;;
                 r|R)
-                    apply_beginner_recommended_preset
-                    status_msg="Setelan Rekomendasi Pemula diterapkan! Tekan [i] atau #8 untuk mulai."
+                    apply_recommended_preset
+                    status_msg="Recommended preset applied! Press [i] or #8 to start installation."
                     continue
                     ;;
                 [1-9])       cursor=$((_TUI_KEY - 1)); action="$cursor" ;;
@@ -319,10 +319,10 @@ run_setup_dashboard() {
                 3)
                     if [[ "${INSTALL_COCKPIT:-N}" =~ ^[Yy]$ ]]; then
                         INSTALL_COCKPIT="N"
-                        status_msg="Cockpit Web Console dinonaktifkan."
+                        status_msg="Cockpit Web Console disabled."
                     else
                         INSTALL_COCKPIT="Y"
-                        status_msg="Cockpit Web Console diaktifkan (port 9090)."
+                        status_msg="Cockpit Web Console enabled (port 9090)."
                     fi
                     ;;
                 4)
@@ -332,10 +332,10 @@ run_setup_dashboard() {
                 5)
                     if [[ "${INSTALL_CLI:-Y}" =~ ^[Yy]$ ]]; then
                         INSTALL_CLI="N"
-                        status_msg="CLI Stack dinonaktifkan."
+                        status_msg="CLI Stack disabled."
                     else
                         INSTALL_CLI="Y"
-                        status_msg="CLI Stack diaktifkan (Fastfetch, Kitty, Zsh)."
+                        status_msg="CLI Stack enabled (Fastfetch, Kitty, Zsh)."
                     fi
                     ;;
                 6)

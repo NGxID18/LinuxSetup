@@ -10,18 +10,18 @@ driver_nvidia_info() {
     else
         NVIDIA_AVAILABLE=0
         NVIDIA_LABEL="NVIDIA [Disabled — requires epel + rpmfusion-nonfree]"
-        NVIDIA_BLOCKED_REASON="NVIDIA driver on AlmaLinux/EL requires both 'epel' and 'rpmfusion-nonfree'."
+        NVIDIA_BLOCKED_REASON="NVIDIA driver on Enterprise Linux requires both 'epel' and 'rpmfusion-nonfree'."
     fi
 }
 
 driver_nvidia_install() {
     ensure_repo_context
     if ! repo_enabled "epel" || ! repo_enabled "rpmfusion-nonfree"; then
-        echo "==> [SKIPPED] AlmaLinux/EL NVIDIA driver requires 'epel' and 'rpmfusion-nonfree'."
+        echo "==> [SKIPPED] Enterprise Linux NVIDIA driver requires 'epel' and 'rpmfusion-nonfree'."
         return 0
     fi
 
-    echo "==> Installing AlmaLinux/EL NVIDIA driver, kernel headers & CUDA..."
+    echo "==> Installing Enterprise Linux NVIDIA driver, kernel headers & CUDA..."
     local current_kernel
     current_kernel="$(uname -r)"
     sudo dnf install -y \

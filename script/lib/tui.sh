@@ -30,15 +30,6 @@ tui_term_rows() {
     printf '%s' "$r"
 }
 
-tui_term_cols() {
-    local c="${COLUMNS:-}"
-    if [ -z "$c" ] && [ -t 1 ] && command -v stty >/dev/null 2>&1; then
-        c="$(stty size 2>/dev/null | awk '{print $2}' || true)"
-    fi
-    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 40 ] || c=80
-    printf '%s' "$c"
-}
-
 tui_truncate() {
     local s="${1:-}" max="${2:-60}"
     if [ "${#s}" -gt "$max" ] && [ "$max" -gt 3 ]; then
@@ -180,61 +171,61 @@ tui_show_help_modal() {
 
     printf '\e[H'
     printf '\e[1;36m========================================================================\e[0m\e[K\n'
-    printf '\e[1;37m  PANDUAN PENGGUNAAN INSTALLER (%s)\e[0m\e[K\n' "${ctx^^}"
+    printf '\e[1;37m  INSTALLER USER GUIDE (%s)\e[0m\e[K\n' "${ctx^^}"
     printf '\e[1;36m========================================================================\e[0m\e[K\n'
-    printf '  \e[1;33mNavigasi Dasar:\e[0m\e[K\n'
-    printf '    - Panah Atas / Bawah (atau k / j) : Geser sorotan pilihan\e[K\n'
-    printf '    - Spasi (Space)                   : Centang [x] / Lepas [ ] / Toggle\e[K\n'
-    printf '    - Enter                           : Buka sub-menu atau simpan pilihan\e[K\n'
-    printf '    - Angka [1-9]                     : Lompat & pilih baris secara cepat\e[K\n'
-    printf '    - [q] atau [ESC]                  : Kembali / batalkan\e[K\n'
+    printf '  \e[1;33mBasic Navigation:\e[0m\e[K\n'
+    printf '    - Up / Down Arrow (or k / j) : Move selection cursor\e[K\n'
+    printf '    - Space                      : Check [x] / Uncheck [ ] / Toggle\e[K\n'
+    printf '    - Enter                      : Open submenu or confirm selection\e[K\n'
+    printf '    - Number [1-9]               : Jump to and select an item quickly\e[K\n'
+    printf '    - [q] or [ESC]               : Go back / cancel\e[K\n'
     printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
 
     case "$ctx" in
         repo)
-            printf '  \e[1;33mPanduan Menu Repository:\e[0m\e[K\n'
-            printf '    - Awalnya installer mendeteksi repo yang SUDAH AKTIF di distro Anda.\e[K\n'
-            printf '    - Bingung memilih? Tekan [r] untuk mengaktifkan semua repo (*Rec)\e[K\n'
-            printf '      yang dibutuhkan driver GPU, codec multimedia, & aplikasi Flathub.\e[K\n'
-            printf '    - Jika repo [x] Anda matikan menjadi [ ], sistem menonaktifkannya.\e[K\n'
-            printf '    - Tekan [d] kapan saja untuk mereset ke kondisi awal sistem Anda.\e[K\n'
+            printf '  \e[1;33mRepository Menu Guide:\e[0m\e[K\n'
+            printf '    - On launch, the installer detects repos ALREADY ACTIVE on your distro.\e[K\n'
+            printf '    - Not sure what to pick? Press [r] to enable recommended (*Rec) repos\e[K\n'
+            printf '      needed for GPU drivers, multimedia codecs, and Flathub apps.\e[K\n'
+            printf '    - Unchecking an active [x] repo to [ ] disables it on your system.\e[K\n'
+            printf '    - Press [d] anytime to reset back to your system\x27s active repos.\e[K\n'
             ;;
         driver)
-            printf '  \e[1;33mPanduan Menu Driver GPU:\e[0m\e[K\n'
-            printf '    - Pilihan bertanda (Recommended — Detected) sudah dicocokkan\e[K\n'
-            printf '      otomatis dengan kartu grafis yang terpasang di perangkat Anda.\e[K\n'
-            printf '    - Jika NVIDIA bertanda [DISABLED], aktifkan repo non-free/RPM Fusion\e[K\n'
-            printf '      terlebih dahulu di Menu #1 (Repositories) lalu tekan [r].\e[K\n'
+            printf '  \e[1;33mGPU Driver Menu Guide:\e[0m\e[K\n'
+            printf '    - The option marked (Recommended — Detected) is automatically matched\e[K\n'
+            printf '      to the graphics card installed in your machine.\e[K\n'
+            printf '    - If NVIDIA shows [DISABLED], enable the required non-free / RPM Fusion\e[K\n'
+            printf '      repository in Menu #1 (Repositories) first, or press [r].\e[K\n'
             ;;
         de)
-            printf '  \e[1;33mPanduan Menu Desktop / GUI:\e[0m\e[K\n'
-            printf '    - Pilih GNOME jika ini instalasi minimal/baru untuk penggunaan desktop.\e[K\n'
-            printf '    - Pilih Skip jika Anda memakai server tanpa layar atau sudah punya GUI.\e[K\n'
+            printf '  \e[1;33mDesktop / GUI Menu Guide:\e[0m\e[K\n'
+            printf '    - Choose GNOME for a minimal desktop install on a fresh system.\e[K\n'
+            printf '    - Choose Skip for headless servers or if you already have a GUI.\e[K\n'
             ;;
         apps)
-            printf '  \e[1;33mPanduan Menu Aplikasi:\e[0m\e[K\n'
-            printf '    - Gunakan [Space] untuk mencentang/melepas aplikasi preset.\e[K\n'
-            printf '    - Tekan [/] untuk mencari paket tambahan di repo distro/AUR,\e[K\n'
-            printf '      atau [f] untuk mencari aplikasi tambahan di Flathub.\e[K\n'
-            printf '    - Tekan [+] / [F] untuk mengetik nama paket/Flatpak ID langsung.\e[K\n'
+            printf '  \e[1;33mApplications Menu Guide:\e[0m\e[K\n'
+            printf '    - Press [Space] to check or uncheck preset applications.\e[K\n'
+            printf '    - Press [/] to search extra packages in distro/AUR repos,\e[K\n'
+            printf '      or [f] to search extra applications on Flathub.\e[K\n'
+            printf '    - Press [+] or [F] to enter package names or Flatpak App IDs directly.\e[K\n'
             ;;
         zram)
-            printf '  \e[1;33mPanduan Menu zRAM Swap:\e[0m\e[K\n'
-            printf '    - zRAM membuat ruang swap terkompresi (zstd) di dalam RAM.\e[K\n'
-            printf '    - Ukuran (Recommended) sudah disesuaikan otomatis dengan RAM fisik.\e[K\n'
+            printf '  \e[1;33mzRAM Swap Menu Guide:\e[0m\e[K\n'
+            printf '    - zRAM creates fast compressed swap space (zstd) directly in RAM.\e[K\n'
+            printf '    - The (Recommended) size is automatically matched to your physical RAM.\e[K\n'
             ;;
         *)
-            printf '  \e[1;33mAlur Cepat untuk Pemula:\e[0m\e[K\n'
-            printf '    1. Tekan [r] di Dashboard utama -> otomatis aktifkan semua setelan\e[K\n'
-            printf '       rekomendasi (Repo populer, Driver GPU, GNOME, Apps, CLI, zRAM).\e[K\n'
-            printf '    2. Periksa ringkasan pada baris 1 s/d 7 (ubah seperlunya).\e[K\n'
-            printf '    3. Tekan [i] atau pilih #8 (Start Installation) untuk mulai!\e[K\n'
-            printf '    4. Di akhir proses, verify.sh memeriksa semua paket terpasang.\e[K\n'
+            printf '  \e[1;33mQuick Start Workflow:\e[0m\e[K\n'
+            printf '    1. Press [r] on the main Dashboard to auto-apply recommended settings\e[K\n'
+            printf '       (popular repos, GPU driver, GNOME, apps, CLI stack, and zRAM).\e[K\n'
+            printf '    2. Review the summary on items 1–7 and adjust anything as needed.\e[K\n'
+            printf '    3. Press [i] or select #8 (Start Installation) to begin provisioning.\e[K\n'
+            printf '    4. At the end, verify.sh checks that all selected packages are installed.\e[K\n'
             ;;
     esac
 
     printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-    printf '  \e[1;32mTekan tombol apa saja untuk menutup panduan ini...\e[0m\e[K\n'
+    printf '  \e[1;32mPress any key to close this guide...\e[0m\e[K\n'
     printf '\e[1;36m========================================================================\e[0m\e[J'
 
     tui_read_key

@@ -2,10 +2,10 @@
 
 _driver_item_help() {
     case "$1" in
-        0) printf '%s' "Driver khusus GPU NVIDIA (+ CUDA/Open Kernel). Jika masih [DISABLED], aktifkan repo yg diminta." ;;
-        1) printf '%s' "Driver open-source Mesa Vulkan & akselerasi video VA-API untuk GPU AMD Radeon." ;;
-        2) printf '%s' "Driver open-source Mesa Vulkan & Media VA-API untuk iGPU Intel / Intel Arc." ;;
-        *) printf '%s' "Lewati pemasangan driver GPU (cocok untuk Virtual Machine atau pertahankan driver saat ini)." ;;
+        0) printf '%s' "Proprietary/Open NVIDIA GPU driver (+ CUDA). If [DISABLED], enable the required repo first." ;;
+        1) printf '%s' "Open-source Mesa Vulkan & VA-API hardware video acceleration for AMD Radeon GPUs." ;;
+        2) printf '%s' "Open-source Mesa Vulkan & Media VA-API driver for Intel iGPU / Intel Arc." ;;
+        *) printf '%s' "Skip GPU driver installation (ideal for virtual machines or keeping current drivers)." ;;
     esac
 }
 
@@ -47,7 +47,7 @@ _tui_select_single() {
         else
             printf '\e[K\n'
         fi
-        printf '  [↑/↓/j/k] Pilih   [1-%d] Pilih #   [Enter/Space] Simpan   [?] Bantuan   [q/ESC] Kembali\e[K\n' "$count"
+        printf '  [↑/↓/j/k] Move  [1-%d] Select  [Enter] Confirm  [?] Help  [q/ESC] Back\e[K\n' "$count"
         printf '\e[1;36m========================================================================\e[0m\e[J'
 
         status_msg=""
@@ -135,7 +135,7 @@ run_driver_menu() {
         )
         local -a _SINGLE_SUBTITLES=("  Detected GPU : \e[36m$(tui_truncate "$gpu_summary" 58)\e[0m")
         if has_nvidia_gpu && [ "${NVIDIA_AVAILABLE:-1}" -eq 0 ]; then
-            _SINGLE_SUBTITLES+=("  \e[1;33mNotice       : GPU NVIDIA terdeteksi, aktifkan repo di menu Repository terlebih dulu.\e[0m")
+            _SINGLE_SUBTITLES+=("  \e[1;33mNotice       : NVIDIA GPU detected; enable the required repo in Repositories first.\e[0m")
         fi
         local -a _SINGLE_INFOS=(
             "$(_driver_item_help 0)"
@@ -167,18 +167,18 @@ run_driver_menu() {
                 printf '\e[1;36m========================================================================\e[0m\e[K\n'
                 printf '\e[1;37m  NVIDIA RTX 5060 TUNING OPTION\e[0m\e[K\n'
                 printf '\e[1;36m========================================================================\e[0m\e[K\n'
-                printf '  RTX 5060 terdeteksi! Terapkan batas daya & clock (5060tune)?\e[K\n'
-                printf '  \e[90m(Opsional: membantu menjaga suhu & konsumsi daya tetap efisien)\e[0m\e[K\n'
+                printf '  RTX 5060 detected! Apply power & clock limit (5060tune)?\e[K\n'
+                printf '  \e[90m(Optional: helps keep temperatures and power draw efficient)\e[0m\e[K\n'
                 printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
                 if [ "$tune_idx" -eq 0 ]; then
-                    printf '\e[7;1m> [Yes] Aktifkan batas daya & clock 5060tune\e[0m\e[K\n'
-                    printf '  [No]  Gunakan setelan standar NVIDIA (Recommended)\e[K\n'
+                    printf '\e[7;1m> [Yes] Enable 5060tune power & clock limit\e[0m\e[K\n'
+                    printf '  [No]  Use default NVIDIA settings (Recommended)\e[K\n'
                 else
-                    printf '  [Yes] Aktifkan batas daya & clock 5060tune\e[K\n'
-                    printf '\e[7;1m> [No]  Gunakan setelan standar NVIDIA (Recommended)\e[0m\e[K\n'
+                    printf '  [Yes] Enable 5060tune power & clock limit\e[K\n'
+                    printf '\e[7;1m> [No]  Use default NVIDIA settings (Recommended)\e[0m\e[K\n'
                 fi
                 printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-                printf '  [↑/↓/←/→] Ganti   [y/n] Pilih Cepat   [Enter] Konfirmasi\e[K\n'
+                printf '  [↑/↓/←/→] Switch   [y/n] Quick Select   [Enter] Confirm\e[K\n'
                 printf '\e[1;36m========================================================================\e[0m\e[J'
 
                 tui_read_key
@@ -270,7 +270,7 @@ run_zram_menu() {
     esac
 
     if tui_is_interactive; then
-        local zram_msg="Swap terkompresi (zstd) di RAM: cepat, hemat SSD, & direkomendasikan sesuai kapasitas RAM."
+        local zram_msg="Compressed swap (zstd) in RAM: fast, SSD-friendly, sized to your RAM."
         local -a _SINGLE_OPTS=(
             "32 GB (32768 MB)${r1}"
             "16 GB (16384 MB)${r2}"
@@ -281,7 +281,7 @@ run_zram_menu() {
         local -a _SINGLE_SUBTITLES=("  Detected System RAM : \e[36m${ram_label}\e[0m")
         local -a _SINGLE_INFOS=(
             "$zram_msg" "$zram_msg" "$zram_msg" "$zram_msg"
-            "Lewati pembuatan swap zRAM (pilih jika Anda sudah mengatur swap sendiri)."
+            "Skip zRAM swap setup (choose if you already manage swap yourself)."
         )
         local -a _SINGLE_DISABLED=("" "" "" "" "")
 
@@ -369,11 +369,11 @@ run_de_menu() {
         local -a _SINGLE_OPTS=() _SINGLE_SUBTITLES=() _SINGLE_INFOS=() _SINGLE_DISABLED=()
         for ((i = 0; i < count; i++)); do
             _SINGLE_OPTS+=("${de_labels[$i]}")
-            _SINGLE_INFOS+=("Instal antarmuka desktop grafis (${de_ids[$i]}) minimal beserta login manager & tema.")
+            _SINGLE_INFOS+=("Install minimal ${de_ids[$i]} desktop environment with display manager & theme.")
             _SINGLE_DISABLED+=("")
         done
         _SINGLE_OPTS+=("Skip (No Desktop Environment / Keep Current)")
-        _SINGLE_INFOS+=("Lewati instalasi tampilan grafis (cocok untuk server/CLI atau sudah punya DE sendiri).")
+        _SINGLE_INFOS+=("Skip graphical desktop installation (ideal for servers/CLI or existing DE).")
         _SINGLE_DISABLED+=("")
 
         local _TUI_SELECTED_IDX="$init_cursor"

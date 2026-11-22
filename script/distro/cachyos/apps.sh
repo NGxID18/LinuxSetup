@@ -48,7 +48,13 @@ distro_apply_apps() {
         native_pkgs+=(util-linux udisks2 lvm2 udisks2-lvm2 btrfs-progs udisks2-btrfs ntfs-3g xfsprogs exfatprogs dosfstools e2fsprogs)
     fi
 
-    if app_enabled "vscodium"; then aur_pkgs+=(vscodium-bin); fi
+    if app_enabled "vscodium"; then
+        if pacman -Si vscodium-bin >/dev/null 2>&1; then
+            native_pkgs+=(vscodium-bin)
+        else
+            aur_pkgs+=(vscodium-bin)
+        fi
+    fi
 
     local p
     for p in "${extra_native[@]}"; do
@@ -59,9 +65,7 @@ distro_apply_apps() {
         fi
     done
 
-    if [ "${#native_pkgs[@]}" -gt 0 ]; then
-        sudo pacman -S --needed --noconfirm "${native_pkgs[@]}"
-    fi
+    install_pkg_list_with_fallback pacman "${native_pkgs[@]}"
 
     if [ "${#aur_pkgs[@]}" -gt 0 ]; then
         local aur_bin=""

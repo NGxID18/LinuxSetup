@@ -4,7 +4,7 @@ ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}
 source "$ROOT_DIR/script/lib/tui.sh"
 
 system_cockpit_install() {
-    echo "==> Installing Cockpit on AlmaLinux/EL..."
+    echo "==> Installing Cockpit on Enterprise Linux..."
     sudo dnf install -y \
         cockpit cockpit-storaged cockpit-networkmanager cockpit-selinux udisks2
     "$ROOT_DIR/script/common/cockpit-config.sh"

@@ -6,7 +6,7 @@ source "$ROOT_DIR/script/common/flatpak.sh"
 
 distro_init_apps() {
     if repo_enabled "rpmfusion-free" && repo_enabled "epel"; then
-        register_app "codecs-extra" "rpmfusion-free" "Multimedia codecs & FFmpeg (ffmpeg)" 1
+        register_app "codecs-extra" "rpmfusion-free" "Full FFmpeg & multimedia codecs from RPM Fusion (ffmpeg)" 1
     fi
     if repo_enabled "vscodium"; then
         register_app "vscodium" "vscodium" "VSCodium open-source code editor (codium)" 1
@@ -39,7 +39,7 @@ distro_apply_apps() {
         return 0
     fi
 
-    echo "==> Installing selected AlmaLinux/EL applications..."
+    echo "==> Installing selected Enterprise Linux applications..."
     local -a native_pkgs=()
     local -a optional_pkgs=()
     local -a extra_native=()
@@ -55,7 +55,6 @@ distro_apply_apps() {
     if app_enabled "tuned";        then native_pkgs+=(tuned); fi
     if app_enabled "cron";         then native_pkgs+=(cronie); fi
     if app_enabled "tailscale";    then native_pkgs+=(tailscale); fi
-    if app_enabled "codecs-extra"; then native_pkgs+=(ffmpeg); fi
     if app_enabled "flatseal"; then optional_pkgs+=(flatseal); fi
     if app_enabled "snapper";  then optional_pkgs+=(snapper); fi
 
@@ -66,6 +65,9 @@ distro_apply_apps() {
     fi
 
     install_pkg_list_with_fallback dnf "${native_pkgs[@]}"
+    if app_enabled "codecs-extra" && repo_enabled "rpmfusion-free" && repo_enabled "epel"; then
+        install_rpmfusion_ffmpeg
+    fi
     if [ "${#optional_pkgs[@]}" -gt 0 ]; then
         sudo dnf install -y "${optional_pkgs[@]}" 2>/dev/null || true
     fi
@@ -97,7 +99,9 @@ distro_verify_apps() {
                 register_expected_flatpak "com.github.tchx84.Flatseal"
             fi
         fi
-        if app_enabled "codecs-extra"; then register_expected_native ffmpeg; fi
+        if app_enabled "codecs-extra" && repo_enabled "rpmfusion-free" && repo_enabled "epel"; then
+            register_expected_native ffmpeg ffmpeg-libs
+        fi
 
         if app_enabled "fs-tools"; then
             register_expected_native util-linux udisks2 udisks2-lvm2 lvm2 xfsprogs dosfstools e2fsprogs

@@ -9,7 +9,7 @@ driver_amd_info() {
 
 driver_amd_install() {
     ensure_repo_context
-    echo "==> Installing AlmaLinux/EL AMD GPU driver..."
+    echo "==> Installing Enterprise Linux AMD GPU driver..."
     sudo dnf install -y mesa-dri-drivers mesa-vulkan-drivers
     sudo dnf install -y mesa-va-drivers 2>/dev/null || true
 }

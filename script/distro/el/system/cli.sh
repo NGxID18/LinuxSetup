@@ -4,7 +4,7 @@ ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}
 source "$ROOT_DIR/script/lib/tui.sh"
 
 system_cli_install() {
-    echo "==> Installing CLI tools (Fastfetch, Kitty, Zsh) on AlmaLinux/EL..."
+    echo "==> Installing CLI tools (Fastfetch, Kitty, Zsh) on Enterprise Linux..."
     sudo dnf install -y \
         fastfetch kitty fontconfig zsh zsh-autosuggestions zsh-syntax-highlighting
     "$ROOT_DIR/script/common/cli-config.sh"

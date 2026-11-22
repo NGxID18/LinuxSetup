@@ -431,3 +431,15 @@ ensure_tailscale_installed() {
         curl -fsSL https://tailscale.com/install.sh | sudo sh
     fi
 }
+
+install_rpmfusion_ffmpeg() {
+    echo "==> Installing full FFmpeg from RPM Fusion..."
+    if rpm -q ffmpeg-free >/dev/null 2>&1; then
+        sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing \
+            || sudo dnf install -y --allowerasing ffmpeg ffmpeg-libs \
+            || echo "  -> [WARNING] Could not install full FFmpeg from RPM Fusion."
+    else
+        sudo dnf --exclude=ffmpeg-free install -y --allowerasing ffmpeg ffmpeg-libs \
+            || echo "  -> [WARNING] Could not install full FFmpeg from RPM Fusion."
+    fi
+}

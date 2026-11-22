@@ -14,14 +14,12 @@ register_app() {
     APP_DEFAULTS+=("$4")
 }
 
-_TUI_STATUS_MSG=""
-
 prompt_pick_search_results() {
     local mode="$1"
     local count="${#SEARCH_PKGS[@]}"
     if [ "$count" -eq 0 ]; then
         if [ "${_TUI_ACTIVE:-0}" -eq 1 ]; then
-            _TUI_STATUS_MSG="Paket tidak ditemukan di repository yang aktif saat ini."
+            _TUI_STATUS_MSG="No matching packages found in currently active repositories."
         else
             echo "  -> No matching packages found (in currently selected repositories)."
         fi
@@ -50,7 +48,7 @@ prompt_pick_search_results() {
 
             printf '\e[H'
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '\e[1;37m  HASIL PENCARIAN (%s | %d ditemukan)\e[0m\e[K\n' "${mode^^}" "$count"
+            printf '\e[1;37m  SEARCH RESULTS (%s | %d found)\e[0m\e[K\n' "${mode^^}" "$count"
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
             printf '    %-3s %-4s %-34s %s\e[K\n' "#" "Pick" "Package / App ID" "Description"
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
@@ -71,8 +69,8 @@ prompt_pick_search_results() {
             done
 
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
-            printf '  [↑/↓/j/k] Pilih   [Space] Tandai [+]   [a] Tandai Semua\e[K\n'
-            printf '  [Enter] Tambahkan paket bertanda (atau yg disorot)   [q/ESC] Batal\e[K\n'
+            printf '  [↑/↓/j/k] Move   [Space] Mark [+]   [a] Mark All\e[K\n'
+            printf '  [Enter] Add marked (or highlighted)   [q/ESC] Cancel\e[K\n'
             printf '\e[1;36m========================================================================\e[0m\e[J'
 
             tui_read_key
@@ -103,7 +101,7 @@ prompt_pick_search_results() {
         tui_leave_screen
 
         if [ "$cancel_pick" -eq 1 ]; then
-            _TUI_STATUS_MSG="Pencarian dibatalkan."
+            _TUI_STATUS_MSG="Search cancelled."
             return 0
         fi
 
@@ -124,7 +122,7 @@ prompt_pick_search_results() {
             fi
             added_list="${added_list:+${added_list}, }${pkg_item}"
         done
-        _TUI_STATUS_MSG="Ditambahkan (${mode}): ${added_list}"
+        _TUI_STATUS_MSG="Added (${mode}): ${added_list}"
         return 0
     fi
 
@@ -267,7 +265,7 @@ search_native_packages() {
                 include_aur=1
             fi
 
-            if [ "${#SEARCH_PKGS[@]}" -lt 15 ] && command -v curl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+            if [ "${#SEARCH_PKGS[@]}" -lt 15 ] && command -v python3 >/dev/null 2>&1; then
                 while IFS=$'\t' read -r pkg_name pkg_desc; do
                     [ -n "$pkg_name" ] || continue
                     if [[ " ${SEARCH_PKGS[*]} " != *" $pkg_name "* ]]; then
@@ -377,20 +375,20 @@ _apps_apply_preset() {
     case "$preset" in
         all)
             for ((i = 0; i < count; i++)); do state[$i]=1; done
-            status_msg="Semua aplikasi preset dipilih."
+            status_msg="All preset applications selected."
             ;;
         none)
             for ((i = 0; i < count; i++)); do state[$i]=0; done
-            status_msg="Semua aplikasi preset dikosongkan."
+            status_msg="All preset applications cleared."
             ;;
         default)
             state=("${APP_DEFAULTS[@]}")
-            status_msg="Aplikasi preset dikembalikan ke setelan default."
+            status_msg="Preset applications reset to defaults."
             ;;
         clear)
             EXTRA_NATIVE_PKGS=""
             EXTRA_FLATPAK_PKGS=""
-            status_msg="Daftar aplikasi custom (Extra) dikosongkan."
+            status_msg="Custom application lists (Extra) cleared."
             ;;
     esac
 }
@@ -418,6 +416,7 @@ run_apps_menu() {
         flathub_on=1
     fi
     local i status_msg=""
+    local -a _tokens=()
 
     if tui_is_interactive; then
         tui_enter_screen
@@ -444,7 +443,7 @@ run_apps_menu() {
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
             printf '\e[1;37m  APPLICATIONS SELECTION MENU (%s | %s)\e[0m\e[K\n' "${DISTRO^^}" "${PKG}"
             printf '\e[1;36m========================================================================\e[0m\e[K\n'
-            printf '  Panduan : \e[1;32m[Space]\e[0m Centang/Lepas  \e[1;32m[/]\e[0m Cari Paket  \e[1;32m[Enter]\e[0m Simpan\e[K\n'
+            printf '  Guide   : \e[1;32m[Space]\e[0m Toggle  \e[1;32m[/]\e[0m Search Repo  \e[1;32m[Enter]\e[0m Save\e[K\n'
             printf '  Repo    : \e[36m%s\e[0m\e[K\n' "$(tui_truncate "${SELECTED_REPOS:-core only}" 58)"
             printf '\e[90m------------------------------------------------------------------------\e[0m\e[K\n'
             printf '    %-3s %-4s %-15s %-22s %s\e[K\n' "#" "Stat" "Application" "From Repository" "Description"
@@ -474,20 +473,20 @@ run_apps_menu() {
             if [ "$flathub_on" -eq 1 ]; then
                 printf '  Extra Flatpak    : %s\e[K\n' "$(tui_truncate "${EXTRA_FLATPAK_PKGS:-none}" 54)"
             else
-                printf '  Extra Flatpak    : \e[90m[nonaktif — aktifkan repo Flathub terlebih dulu]\e[0m\e[K\n'
+                printf '  Extra Flatpak    : \e[90m[disabled — enable Flathub in Repositories first]\e[0m\e[K\n'
             fi
             if [ -n "$status_msg" ]; then
                 printf '  \e[1;33m%s\e[0m\e[K\n' "$status_msg"
             else
                 printf '\e[K\n'
             fi
-            printf '  [↑/↓/j/k] Pilih  [Space] Centang  [a] Semua  [n] Kosong  [d] Default  [x] Hapus Extra\e[K\n'
+            printf '  [↑/↓/j/k] Move [Space] Toggle [a] All [n] None [d] Default [x] Clear\e[K\n'
             if [ "$flathub_on" -eq 1 ]; then
-                printf '  [/ or s] Cari Repo  [f] Cari Flathub  [+] Tambah Native  [F] Tambah Flatpak\e[K\n'
-                printf '  [-] Hapus Custom    [?] Bantuan       [Enter/c/q] Simpan & Kembali\e[K\n'
+                printf '  [/ or s] Search Repo  [f] Flathub  [+] Add Native  [F] Add Flatpak\e[K\n'
+                printf '  [-] Remove Custom     [?] Help     [Enter/c/q] Save & Back\e[K\n'
             else
-                printf '  [/ or s] Cari Repo  [+] Tambah Native [-] Hapus Custom   [?] Bantuan\e[K\n'
-                printf '  [Enter/c/q] Simpan & Kembali\e[K\n'
+                printf '  [/ or s] Search Repo  [+] Add Native  [-] Remove Custom  [?] Help\e[K\n'
+                printf '  [Enter/c/q] Save & Back\e[K\n'
             fi
             printf '\e[1;36m========================================================================\e[0m\e[J'
 
@@ -532,55 +531,67 @@ run_apps_menu() {
                 d|D) _apps_apply_preset "default" ;;
                 x|X) _apps_apply_preset "clear" ;;
                 /|s|S)
-                    tui_prompt_line "Cari paket di repo Native/AUR (contoh: firefox): "
+                    tui_prompt_line "Search Native/AUR packages (e.g. firefox): "
                     if [ -n "$_TUI_INPUT" ]; then
                         _TUI_STATUS_MSG=""
-                        printf '\e[H\e[2J\e[1;36m==> Mencari "%s" di repository aktif...\e[0m\n' "$_TUI_INPUT"
+                        printf '\e[H\e[2J\e[1;36m==> Searching active repositories for "%s"...\e[0m\n' "$_TUI_INPUT"
                         search_native_packages "$_TUI_INPUT"
                         status_msg="${_TUI_STATUS_MSG:-}"
                     fi
                     ;;
                 f)
                     if [ "$flathub_on" -eq 1 ]; then
-                        tui_prompt_line "Cari aplikasi di Flathub (contoh: gimp): "
+                        tui_prompt_line "Search Flathub apps (e.g. gimp): "
                         if [ -n "$_TUI_INPUT" ]; then
                             _TUI_STATUS_MSG=""
-                            printf '\e[H\e[2J\e[1;36m==> Mencari "%s" di Flathub online...\e[0m\n' "$_TUI_INPUT"
+                            printf '\e[H\e[2J\e[1;36m==> Searching Flathub online for "%s"...\e[0m\n' "$_TUI_INPUT"
                             if declare -F search_flatpak_packages >/dev/null 2>&1; then
                                 search_flatpak_packages "$_TUI_INPUT"
                                 status_msg="${_TUI_STATUS_MSG:-}"
                             else
-                                status_msg="Helper Flatpak belum dimuat."
+                                status_msg="Flatpak helper is not loaded."
                             fi
                         fi
                     else
-                        status_msg="Repository Flathub belum diaktifkan di Menu Repository."
+                        status_msg="Flathub repository is not enabled in the Repository Menu."
                     fi
                     ;;
                 +)
-                    tui_prompt_line "Tambah nama paket Native/AUR (pisahkan dengan spasi): "
+                    tui_prompt_line "Add Native/AUR package name(s) (space-separated): "
                     if [ -n "$_TUI_INPUT" ]; then
-                        EXTRA_NATIVE_PKGS="$(append_unique_tokens "$EXTRA_NATIVE_PKGS" $_TUI_INPUT)"
-                        status_msg="Daftar Extra Native/AUR diperbarui."
+                        _tokens=()
+                        read -ra _tokens <<< "$_TUI_INPUT" || true
+                        if [ "${#_tokens[@]}" -gt 0 ]; then
+                            EXTRA_NATIVE_PKGS="$(append_unique_tokens "$EXTRA_NATIVE_PKGS" "${_tokens[@]}")"
+                        fi
+                        status_msg="Extra Native/AUR list updated."
                     fi
                     ;;
                 F)
                     if [ "$flathub_on" -eq 1 ]; then
-                        tui_prompt_line "Tambah Flatpak App ID (contoh: org.gimp.GIMP): "
+                        tui_prompt_line "Add Flatpak App ID(s) (e.g. org.gimp.GIMP): "
                         if [ -n "$_TUI_INPUT" ]; then
-                            EXTRA_FLATPAK_PKGS="$(append_unique_tokens "$EXTRA_FLATPAK_PKGS" $_TUI_INPUT)"
-                            status_msg="Daftar Extra Flatpak diperbarui."
+                            _tokens=()
+                            read -ra _tokens <<< "$_TUI_INPUT" || true
+                            if [ "${#_tokens[@]}" -gt 0 ]; then
+                                EXTRA_FLATPAK_PKGS="$(append_unique_tokens "$EXTRA_FLATPAK_PKGS" "${_tokens[@]}")"
+                            fi
+                            status_msg="Extra Flatpak list updated."
                         fi
                     else
-                        status_msg="Repository Flathub belum diaktifkan di Menu Repository."
+                        status_msg="Flathub repository is not enabled in the Repository Menu."
                     fi
                     ;;
                 -)
-                    tui_prompt_line "Hapus paket custom Native/AUR atau Flatpak: "
+                    tui_prompt_line "Remove custom Native/AUR or Flatpak package(s): "
                     if [ -n "$_TUI_INPUT" ]; then
-                        EXTRA_NATIVE_PKGS="$(remove_tokens "$EXTRA_NATIVE_PKGS" $_TUI_INPUT)"
-                        EXTRA_FLATPAK_PKGS="$(remove_tokens "$EXTRA_FLATPAK_PKGS" $_TUI_INPUT)"
-                        status_msg="Menghapus '$_TUI_INPUT' dari daftar custom."
+                        _tokens=()
+                        read -ra _tokens <<< "$_TUI_INPUT" || true
+                        if [ "${#_tokens[@]}" -gt 0 ]; then
+                            EXTRA_NATIVE_PKGS="$(remove_tokens "$EXTRA_NATIVE_PKGS" "${_tokens[@]}")"
+                            EXTRA_FLATPAK_PKGS="$(remove_tokens "$EXTRA_FLATPAK_PKGS" "${_tokens[@]}")"
+                        fi
+                        status_msg="Removed '$_TUI_INPUT' from custom lists."
                     fi
                     ;;
                 ENTER|c|C|q|Q|ESC|EOF)
@@ -657,23 +668,39 @@ run_apps_menu() {
                     ;;
                 +f\ *)
                     if [ "$flathub_on" -eq 1 ]; then
-                        EXTRA_FLATPAK_PKGS="$(append_unique_tokens "$EXTRA_FLATPAK_PKGS" ${input:3})"
+                        _tokens=()
+                        read -ra _tokens <<< "${input:3}" || true
+                        if [ "${#_tokens[@]}" -gt 0 ]; then
+                            EXTRA_FLATPAK_PKGS="$(append_unique_tokens "$EXTRA_FLATPAK_PKGS" "${_tokens[@]}")"
+                        fi
                     else
                         echo "  -> Flathub repository was not selected in Repository Menu."
                     fi
                     ;;
                 -f\ *)
                     if [ "$flathub_on" -eq 1 ]; then
-                        EXTRA_FLATPAK_PKGS="$(remove_tokens "$EXTRA_FLATPAK_PKGS" ${input:3})"
+                        _tokens=()
+                        read -ra _tokens <<< "${input:3}" || true
+                        if [ "${#_tokens[@]}" -gt 0 ]; then
+                            EXTRA_FLATPAK_PKGS="$(remove_tokens "$EXTRA_FLATPAK_PKGS" "${_tokens[@]}")"
+                        fi
                     else
                         echo "  -> Flathub repository was not selected in Repository Menu."
                     fi
                     ;;
                 +\ *)
-                    EXTRA_NATIVE_PKGS="$(append_unique_tokens "$EXTRA_NATIVE_PKGS" ${input:2})"
+                    _tokens=()
+                    read -ra _tokens <<< "${input:2}" || true
+                    if [ "${#_tokens[@]}" -gt 0 ]; then
+                        EXTRA_NATIVE_PKGS="$(append_unique_tokens "$EXTRA_NATIVE_PKGS" "${_tokens[@]}")"
+                    fi
                     ;;
                 -\ *)
-                    EXTRA_NATIVE_PKGS="$(remove_tokens "$EXTRA_NATIVE_PKGS" ${input:2})"
+                    _tokens=()
+                    read -ra _tokens <<< "${input:2}" || true
+                    if [ "${#_tokens[@]}" -gt 0 ]; then
+                        EXTRA_NATIVE_PKGS="$(remove_tokens "$EXTRA_NATIVE_PKGS" "${_tokens[@]}")"
+                    fi
                     ;;
                 *)
                     local normalized="${input//,/ }"

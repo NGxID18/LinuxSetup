@@ -91,21 +91,23 @@ TOTAL_PKGS=0
 INSTALLED_PKGS=0
 MISSING_PKGS=()
 
-echo -e "\n--> Checking Native Packages ($PKG | $DISTRO):"
-for pkg in "${EXPECTED_NATIVE_PKGS[@]}"; do
-    [ -n "${SEEN_NATIVE[$pkg]:-}" ] && continue
-    SEEN_NATIVE[$pkg]=1
-    TOTAL_PKGS=$((TOTAL_PKGS + 1))
-    LABEL="${pkg%%|*}"
+if [ "${#EXPECTED_NATIVE_PKGS[@]}" -gt 0 ]; then
+    echo -e "\n--> Checking Native Packages ($PKG | $DISTRO):"
+    for pkg in "${EXPECTED_NATIVE_PKGS[@]}"; do
+        [ -n "${SEEN_NATIVE[$pkg]:-}" ] && continue
+        SEEN_NATIVE[$pkg]=1
+        TOTAL_PKGS=$((TOTAL_PKGS + 1))
+        LABEL="${pkg%%|*}"
 
-    if is_native_installed "$pkg"; then
-        printf "  [\e[1;32mOK\e[0m]      %s\n" "$LABEL"
-        INSTALLED_PKGS=$((INSTALLED_PKGS + 1))
-    else
-        printf "  [\e[1;31mMISSING\e[0m] %s\n" "$LABEL"
-        MISSING_PKGS+=("$LABEL ($PKG)")
-    fi
-done
+        if is_native_installed "$pkg"; then
+            printf "  [\e[1;32mOK\e[0m]      %s\n" "$LABEL"
+            INSTALLED_PKGS=$((INSTALLED_PKGS + 1))
+        else
+            printf "  [\e[1;31mMISSING\e[0m] %s\n" "$LABEL"
+            MISSING_PKGS+=("$LABEL ($PKG)")
+        fi
+    done
+fi
 
 if [ "${#EXPECTED_FLATPAK_PKGS[@]}" -gt 0 ]; then
     echo -e "\n--> Checking Flatpak Packages:"

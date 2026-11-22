@@ -9,7 +9,7 @@ driver_intel_info() {
 
 driver_intel_install() {
     ensure_repo_context
-    echo "==> Installing AlmaLinux/EL Intel GPU driver..."
+    echo "==> Installing Enterprise Linux Intel GPU driver..."
     sudo dnf install -y mesa-dri-drivers mesa-vulkan-drivers intel-media-driver \
         || sudo dnf install -y mesa-dri-drivers mesa-vulkan-drivers
     sudo dnf install -y libva-intel-driver 2>/dev/null || true

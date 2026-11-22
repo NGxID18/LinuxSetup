@@ -37,8 +37,12 @@ append_unique_tokens() {
 remove_tokens() {
     local current="${1:-}"
     shift
+    local -a cur_tokens=()
+    if [ -n "$current" ]; then
+        read -ra cur_tokens <<< "$current" || true
+    fi
     local out="" tok rm_tok skip
-    for tok in $current; do
+    for tok in "${cur_tokens[@]}"; do
         skip=0
         for rm_tok in "$@"; do
             if [ "$tok" = "$rm_tok" ]; then
@@ -89,12 +93,12 @@ detect_linux_env() {
             PKG="${PKG:-dnf}"
             case "$DISTRO_ID" in
                 fedora)                         DISTRO="${DISTRO:-fedora}" ;;
-                almalinux|rhel|rocky|centos|ol) DISTRO="${DISTRO:-almalinux}" ;;
+                almalinux|rhel|rocky|centos|ol) DISTRO="${DISTRO:-el}" ;;
                 *)
                     if [ "$(rpm -E %fedora 2>/dev/null || echo '%fedora')" != "%fedora" ]; then
                         DISTRO="${DISTRO:-fedora}"
                     else
-                        DISTRO="${DISTRO:-almalinux}"
+                        DISTRO="${DISTRO:-el}"
                     fi
                     ;;
             esac
@@ -124,7 +128,7 @@ detect_linux_env() {
     fi
 
     case "$DISTRO" in
-        rhel|rocky|centos|ol) DISTRO="almalinux" ;;
+        almalinux|rhel|rocky|centos|ol) DISTRO="el" ;;
     esac
 
     DISTRO_DIR="$ROOT_DIR/script/distro/$DISTRO"

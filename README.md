@@ -18,7 +18,7 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
 
 - **openSUSE** (Leap, Tumbleweed) — `zypper`
 - **Fedora** — `dnf`
-- **Enterprise Linux** (AlmaLinux, RHEL, Rocky Linux, CentOS) — `dnf`
+- **Enterprise Linux** (RHEL, Rocky Linux, AlmaLinux, CentOS, Oracle Linux) — `dnf`
 - **Debian** — `apt`
 - **Ubuntu** — `apt`
 - **Arch Linux** & **CachyOS** — `pacman`
@@ -60,7 +60,7 @@ wget -qO- https://raw.githubusercontent.com/NGxID18/LinuxSetup/main/install.sh |
     │   ├── zram-config.sh
     │   └── 5060tune.sh
     └── distro/
-        └── <almalinux|arch|cachyos|debian|fedora|leap|tumbleweed|ubuntu>/
+        └── <arch|cachyos|debian|el|fedora|leap|tumbleweed|ubuntu>/
             ├── repo.sh
             ├── apps.sh
             ├── driver/

@@ -4,19 +4,35 @@ ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 source "$ROOT_DIR/script/lib/tui.sh"
 source "$ROOT_DIR/script/common/flatpak.sh"
 
+_EL_EXTRAS_RE='^(extras|extras-common|almalinux-extras|rocky-extras)$'
+_EL_CRB_RE='^(crb|powertools|almalinux-crb|rocky-crb|codeready-builder-for-rhel-.*-rpms|ol[0-9]+_codeready_builder)$'
+_EL_PLUS_RE='^(plus|almalinux-plus|rocky-plus|centosplus)$'
+_EL_SYNERGY_RE='^(synergy|almalinux-synergy)$'
+
 distro_init_repos() {
-    REPO_CORE="baseos, appstream"
-    register_repo "extras"            "Official"    "Supplementary release packages (required for EPEL/ELRepo)" "$(repo_active_flag is_dnf_repo_active '^(extras|almalinux-extras|rocky-extras)$')" 1
-    register_repo "crb"               "Official"    "CodeReady Builder (developer libraries & headers)"          "$(repo_active_flag is_dnf_repo_active '^(crb|powertools|almalinux-crb|rocky-crb)$')"   1
-    register_repo "epel"              "Community"   "Extra Packages for Enterprise Linux (epel-release)"         "$(repo_active_flag is_dnf_repo_active '^epel$')"                                         1
-    register_repo "rpmfusion-free"    "Community"   "RPM Fusion Free (FFmpeg, VLC, open-source multimedia)"      "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"                    1
-    register_repo "rpmfusion-nonfree" "Community"   "RPM Fusion Nonfree (NVIDIA drivers, codecs, Steam)"         "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')"                 1
-    register_repo "plus"              "Official"    "AlmaLinux/EL Plus extended packages"                        "$(repo_active_flag is_dnf_repo_active '^(plus|almalinux-plus|rocky-plus)$')"             0
-    register_repo "synergy"           "Community"   "AlmaLinux Synergy community packages"                       "$(repo_active_flag is_dnf_repo_active '^(synergy|almalinux-synergy)$')"                  0
-    register_repo "elrepo"            "Third-Party" "ELRepo hardware drivers & mainline/LTS kernels"             "$(repo_active_flag is_dnf_repo_active '^elrepo$')"                                       0
-    register_repo "vscodium"          "Third-Party" "VSCodium official RPM repository"                           "$(repo_active_flag is_dnf_repo_active '^vscodium$')"                                     1
-    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                          "$(repo_active_flag is_dnf_repo_active '^tailscale')"                                     1
-    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"                                                   1
+    case "${DISTRO_ID:-}" in
+        rhel) REPO_CORE="rhel-baseos, rhel-appstream" ;;
+        ol)   REPO_CORE="ol-baseos, ol-appstream" ;;
+        *)    REPO_CORE="baseos, appstream" ;;
+    esac
+
+    if { [ "${DISTRO_ID:-}" != "rhel" ] && [ "${DISTRO_ID:-}" != "ol" ]; } || is_dnf_repo_present "$_EL_EXTRAS_RE"; then
+        register_repo "extras" "Official" "Supplementary release packages (required for EPEL/ELRepo)" "$(repo_active_flag is_dnf_repo_active "$_EL_EXTRAS_RE")" 1
+    fi
+    register_repo "crb"               "Official"    "CodeReady Builder (developer libraries & headers)"          "$(repo_active_flag is_dnf_repo_active "$_EL_CRB_RE")"                  1
+    register_repo "epel"              "Community"   "Extra Packages for Enterprise Linux (epel-release)"         "$(repo_active_flag is_dnf_repo_active '^epel$')"                         1
+    register_repo "rpmfusion-free"    "Community"   "RPM Fusion Free (FFmpeg, VLC, open-source multimedia)"      "$(repo_active_flag is_dnf_repo_active '^rpmfusion-free(-updates)?$')"    1
+    register_repo "rpmfusion-nonfree" "Community"   "RPM Fusion Nonfree (NVIDIA drivers, codecs, Steam)"         "$(repo_active_flag is_dnf_repo_active '^rpmfusion-nonfree(-updates)?$')" 1
+    if { [ "${DISTRO_ID:-}" != "rhel" ] && [ "${DISTRO_ID:-}" != "ol" ]; } || is_dnf_repo_present "$_EL_PLUS_RE"; then
+        register_repo "plus" "Official" "Enterprise Linux Plus extended packages" "$(repo_active_flag is_dnf_repo_active "$_EL_PLUS_RE")" 0
+    fi
+    if [ "${DISTRO_ID:-}" = "almalinux" ] || is_dnf_repo_present "$_EL_SYNERGY_RE"; then
+        register_repo "synergy" "Community" "AlmaLinux Synergy pre-EPEL community packages" "$(repo_active_flag is_dnf_repo_active "$_EL_SYNERGY_RE")" 0
+    fi
+    register_repo "elrepo"            "Third-Party" "ELRepo hardware drivers & mainline/LTS kernels"             "$(repo_active_flag is_dnf_repo_active '^elrepo$')"                       0
+    register_repo "vscodium"          "Third-Party" "VSCodium official RPM repository"                           "$(repo_active_flag is_dnf_repo_active '^vscodium$')"                     1
+    register_repo "tailscale"         "Third-Party" "Tailscale official VPN repository"                          "$(repo_active_flag is_dnf_repo_active '^tailscale')"                     1
+    register_repo "flathub"           "Universal"   "Flathub Flatpak application repository"                     "$(repo_active_flag is_flathub_active)"                                   1
 }
 
 distro_apply_repos() {
@@ -25,25 +41,35 @@ distro_apply_repos() {
         run_repo_menu
     fi
 
-    echo "==> Configuring AlmaLinux/EL DNF repositories & updating system..."
-    local rhel_ver
+    echo "==> Configuring Enterprise Linux DNF repositories & updating system..."
+    local rhel_ver arch
     rhel_ver="$(rpm -E %rhel)"
+    arch="$(uname -m)"
 
-    if repo_enabled "extras"; then
-        set_matching_dnf_repos_enabled '^(extras|almalinux-extras|rocky-extras)$' 1
-    else
-        set_matching_dnf_repos_enabled '^(extras|almalinux-extras|rocky-extras)$' 0
+    if is_dnf_repo_present "$_EL_EXTRAS_RE"; then
+        if repo_enabled "extras"; then
+            set_matching_dnf_repos_enabled "$_EL_EXTRAS_RE" 1
+        else
+            set_matching_dnf_repos_enabled "$_EL_EXTRAS_RE" 0
+        fi
     fi
 
     if repo_enabled "crb"; then
-        set_matching_dnf_repos_enabled '^(crb|powertools|almalinux-crb|rocky-crb)$' 1
+        if [ "${DISTRO_ID:-}" = "rhel" ] && command -v subscription-manager >/dev/null 2>&1; then
+            sudo subscription-manager repos --enable="codeready-builder-for-rhel-${rhel_ver}-${arch}-rpms" 2>/dev/null || true
+        fi
+        set_matching_dnf_repos_enabled "$_EL_CRB_RE" 1
     else
-        set_matching_dnf_repos_enabled '^(crb|powertools|almalinux-crb|rocky-crb)$' 0
+        if [ "${DISTRO_ID:-}" = "rhel" ] && command -v subscription-manager >/dev/null 2>&1; then
+            sudo subscription-manager repos --disable="codeready-builder-for-rhel-${rhel_ver}-${arch}-rpms" 2>/dev/null || true
+        fi
+        set_matching_dnf_repos_enabled "$_EL_CRB_RE" 0
     fi
 
     if repo_enabled "epel"; then
         if ! is_dnf_repo_present '^epel$'; then
-            sudo dnf install -y epel-release || true
+            sudo dnf install -y epel-release 2>/dev/null \
+                || sudo dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${rhel_ver}.noarch.rpm" || true
         fi
         set_matching_dnf_repos_enabled '^epel(-cisco-openh264)?$' 1
     else
@@ -70,20 +96,22 @@ distro_apply_repos() {
         set_matching_dnf_repos_enabled '^rpmfusion-nonfree(-updates)?$' 0
     fi
 
-    if repo_enabled "plus"; then
-        set_matching_dnf_repos_enabled '^(plus|almalinux-plus|rocky-plus)$' 1
-    else
-        set_matching_dnf_repos_enabled '^(plus|almalinux-plus|rocky-plus)$' 0
+    if is_dnf_repo_present "$_EL_PLUS_RE"; then
+        if repo_enabled "plus"; then
+            set_matching_dnf_repos_enabled "$_EL_PLUS_RE" 1
+        else
+            set_matching_dnf_repos_enabled "$_EL_PLUS_RE" 0
+        fi
     fi
 
     if repo_enabled "synergy"; then
-        if ! is_dnf_repo_present '^(synergy|almalinux-synergy)$'; then
+        if ! is_dnf_repo_present "$_EL_SYNERGY_RE"; then
             sudo dnf install -y almalinux-release-synergy 2>/dev/null \
                 || sudo dnf install -y "https://repo.almalinux.org/almalinux/almalinux-release-synergy-latest-${rhel_ver}.noarch.rpm" 2>/dev/null || true
         fi
-        set_matching_dnf_repos_enabled '^(synergy|almalinux-synergy)$' 1
-    else
-        set_matching_dnf_repos_enabled '^(synergy|almalinux-synergy)$' 0
+        set_matching_dnf_repos_enabled "$_EL_SYNERGY_RE" 1
+    elif is_dnf_repo_present "$_EL_SYNERGY_RE"; then
+        set_matching_dnf_repos_enabled "$_EL_SYNERGY_RE" 0
     fi
 
     if repo_enabled "elrepo"; then

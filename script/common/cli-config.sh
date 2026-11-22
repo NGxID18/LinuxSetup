@@ -8,6 +8,8 @@ mkdir -p "$HOME/.config/fastfetch"
 cp "$ROOT_DIR/config/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc"
 
 echo "==> Configuring Kitty & JetBrainsMono Nerd Font..."
+TMP_FONT=""
+trap 'rm -f "${TMP_FONT:-}"' EXIT
 if ! fc-list 2>/dev/null | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
     echo "  -> Downloading and installing JetBrainsMono Nerd Font..."
     FONT_DIR="/usr/local/share/fonts/JetBrainsMonoNerd"
@@ -16,6 +18,7 @@ if ! fc-list 2>/dev/null | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; th
     curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz" -o "$TMP_FONT"
     sudo tar -xJf "$TMP_FONT" -C "$FONT_DIR"
     rm -f "$TMP_FONT"
+    TMP_FONT=""
     sudo fc-cache -f
 fi
 

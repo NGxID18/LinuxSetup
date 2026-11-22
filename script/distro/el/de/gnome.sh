@@ -8,7 +8,7 @@ de_gnome_info() {
 }
 
 de_gnome_install() {
-    echo "==> Installing minimal GNOME desktop on AlmaLinux/EL..."
+    echo "==> Installing minimal GNOME desktop on Enterprise Linux..."
     sudo dnf install -y \
         gdm gnome-shell gnome-session gnome-settings-daemon gnome-control-center \
         gnome-keyring xdg-desktop-portal-gnome xdg-user-dirs-gtk nautilus \

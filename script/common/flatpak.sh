@@ -62,7 +62,7 @@ search_flatpak_packages() {
 
     echo "==> Searching Flathub online for '$query'..."
 
-    if command -v curl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+    if command -v python3 >/dev/null 2>&1; then
         while IFS=$'\t' read -r app_id app_desc; do
             [ -n "$app_id" ] || continue
             SEARCH_PKGS+=("$app_id")
@@ -104,6 +104,21 @@ PYEOF
     prompt_pick_search_results "flatpak"
 }
 
+_has_native_flatseal() {
+    command -v flatseal >/dev/null 2>&1 && return 0
+    if command -v rpm >/dev/null 2>&1 && rpm -q flatseal >/dev/null 2>&1; then
+        return 0
+    fi
+    if command -v dpkg-query >/dev/null 2>&1 \
+        && dpkg-query -W -f='${Status}\n' flatseal 2>/dev/null | grep -Fxq "install ok installed"; then
+        return 0
+    fi
+    if command -v pacman >/dev/null 2>&1 && pacman -Qq flatseal >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
 install_selected_flatpaks() {
     if ! repo_enabled "flathub"; then
         return 0
@@ -117,11 +132,7 @@ install_selected_flatpaks() {
     app_enabled "zapzap"        && flatpak_queue+=("com.rtosta.zapzap") || true
     app_enabled "obs-studio"    && flatpak_queue+=("com.obsproject.Studio") || true
 
-    if app_enabled "flatseal" \
-        && ! command -v flatseal >/dev/null 2>&1 \
-        && ! rpm -q flatseal >/dev/null 2>&1 \
-        && ! dpkg -s flatseal >/dev/null 2>&1 \
-        && ! pacman -Qq flatseal >/dev/null 2>&1; then
+    if app_enabled "flatseal" && ! _has_native_flatseal; then
         flatpak_queue+=("com.github.tchx84.Flatseal")
     fi
 
